@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>嵌入式光速入门 — 有手就会，安装完软件就成功了 80%</title>
+<style>
+  :root{
+    --bg:#f5f2e8; --card:#ffffff; --ink:#2a2d33; --sub:#5c6470;
+    --accent:#6a9c3c; --accent2:#3c6a9c; --bad:#c4456a; --line:#e3ddc8;
+    --code-bg:#282c34; --code-ink:#d8dee9;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);
+    font-family:"Microsoft YaHei","PingFang SC",sans-serif;
+    font-size:20px;line-height:1.75;padding:48px 24px}
+  .wrap{max-width:1180px;margin:0 auto}
+  /* ---------- hero ---------- */
+  .hero{text-align:center;padding:56px 32px;background:var(--card);
+    border:1px solid var(--line);border-radius:14px;margin-bottom:36px}
+  .hero .kicker{color:var(--accent);font-weight:700;letter-spacing:3px;font-size:18px}
+  .hero h1{font-size:52px;line-height:1.3;margin:18px 0 10px}
+  .hero h1 .bad{color:var(--bad)}
+  .hero .sub{color:var(--sub);font-size:24px}
+  .hero .stats{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-top:28px}
+  .stat{background:var(--bg);border:1px solid var(--line);border-radius:10px;
+    padding:14px 26px;min-width:150px}
+  .stat b{display:block;font-size:34px;color:var(--accent2)}
+  .stat span{font-size:16px;color:var(--sub)}
+  /* ---------- sections ---------- */
+  h2{font-size:32px;margin:44px 0 18px;padding-left:14px;
+    border-left:6px solid var(--accent)}
+  .grid{display:grid;gap:18px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr 1fr}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:24px 26px}
+  .card h3{font-size:23px;margin-bottom:10px}
+  .card p{color:var(--ink)}
+  .card .note{color:var(--sub);font-size:17px;margin-top:8px}
+  .num{display:inline-block;background:var(--accent);color:#fff;font-weight:700;
+    width:34px;height:34px;line-height:34px;text-align:center;border-radius:8px;
+    margin-right:10px;font-size:18px}
+  .tag{display:inline-block;padding:2px 12px;border-radius:20px;font-size:15px;
+    font-weight:700;margin-right:8px;vertical-align:middle}
+  .tag.g{background:#dcebd0;color:#3f6a1e}
+  .tag.r{background:#f7d9e3;color:var(--bad)}
+  .tag.b{background:#dde8f5;color:var(--accent2)}
+  table{width:100%;border-collapse:collapse;background:var(--card);
+    border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  th{background:#eef3e6;text-align:left;padding:12px 16px;font-size:18px}
+  td{padding:11px 16px;border-top:1px solid var(--line);font-size:18px}
+  td code, p code, li code{background:#ece7d6;border-radius:5px;padding:1px 8px;
+    font-family:Consolas,monospace;font-size:16px;color:#5a4d1e}
+  /* ---------- steps ---------- */
+  .step{display:flex;gap:16px;align-items:flex-start;background:var(--card);
+    border:1px solid var(--line);border-radius:12px;padding:18px 22px;margin-bottom:14px}
+  .step .no{flex:0 0 44px;height:44px;border-radius:10px;background:var(--accent2);
+    color:#fff;font-size:22px;font-weight:700;text-align:center;line-height:44px}
+  .step h4{font-size:21px;margin-bottom:4px}
+  .step p{color:var(--sub);font-size:18px}
+  .step code{color:#5a4d1e}
+  /* ---------- terminal ---------- */
+  .term{background:var(--code-bg);color:var(--code-ink);border-radius:12px;
+    padding:20px 24px;font-family:Consolas,"Courier New",monospace;font-size:17px;
+    line-height:1.6;overflow-x:auto;white-space:pre}
+  .term .g{color:#98c379}.term .y{color:#e5c07b}.term .r{color:#e06c75}
+  .term .c{color:#7f8794}
+  .warn{background:#fdf3f6;border:1px solid #f2cdd9;border-left:6px solid var(--bad);
+    border-radius:10px;padding:16px 20px;margin:14px 0;color:#8a3550}
+  .ok{background:#f0f7ea;border:1px solid #d4e5c0;border-left:6px solid var(--accent);
+    border-radius:10px;padding:16px 20px;margin:14px 0;color:#3f6a1e}
+  .foot{margin:52px 0 12px;text-align:center;color:var(--sub);font-size:17px}
+  @media (max-width:900px){.g2,.g3{grid-template-columns:1fr}
+    body{font-size:18px}.hero h1{font-size:36px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ================= HERO ================= -->
+  <div class="hero">
+    <div class="kicker">STM32 外设一次讲透 · 配套实战工程</div>
+    <h1>嵌入式光速入门，<span class="bad">有手就会</span><br>安装完软件就成功了 <span class="bad">80%</span></h1>
+    <div class="sub">AI 把「外设怎么配、寄存器怎么写、板子怎么验」一次讲清楚、做出来、测明白</div>
+    <div class="stats">
+      <div class="stat"><b>31</b><span>集系列视频</span></div>
+      <div class="stat"><b>21</b><span>个外设驱动模块</span></div>
+      <div class="stat"><b>26</b><span>条串口验证命令</span></div>
+      <div class="stat"><b>0 err / 0 warn</b><span>编译三判据</span></div>
+    </div>
+  </div>
+
+  <!-- ================= 优势 ================= -->
+  <h2>一、AI 开发好在哪（本工程就是证据）</h2>
+  <div class="grid g2">
+    <div class="card">
+      <h3>零学费，门槛只剩「装软件」</h3>
+      <p>手册 1700 页不用啃。RM0090 每个寄存器位段、BRR 波特率实算
+        （<code>84MHz/16/115200 → BRR=0x2D9</code>，误差 +0.023%）、
+        CAN 位时序采样点 85.7%，AI 直接算好写进代码注释。</p>
+      <p class="note">你只需要会：装软件、接杜邦线、敲回车。</p>
+    </div>
+    <div class="card">
+      <h3>快：一下午 = 21 个外设模块</h3>
+      <p>从一句「把所有外设都用上」到编译零错误零警告的 hex，
+        AI 完成引脚预算（82 脚分到 97.6%）、14 组引脚冲突裁决、
+        CubeMX 配置、21 个驱动模块、26 条验证命令。</p>
+      <p class="note">人工做同样的事，按教程书速度是一个季度。</p>
+    </div>
+    <div class="card">
+      <h3>可验证：不靠「我觉得能用」</h3>
+      <p>每个模块自带 <code>selftest()</code>，串口菜单逐个跑，
+        输出机械判据 <b>PASS / FAIL step&lt;N&gt;</b>。
+        DAC 输出用 ADC 实读对账、PWM 用输入捕获实测频率——
+        三角验证：<b>手册怎么说 → 代码怎么写 → 板上测到什么</b>。</p>
+    </div>
+    <div class="card">
+      <h3>教学级：每行代码带出处</h3>
+      <p>写 <code>BDTR.DTG=0x94</code> 旁边就注释
+        「168MHz→t_DTS=5.952ns→死区 999.9ns」；
+        写错的地方 AI 会被手册打回重写
+        （本次开发中被纠正 7 处，全部留痕）。</p>
+      <p class="note">比很多教程更严谨：以手册为唯一权威源。</p>
+    </div>
+  </div>
+
+  <!-- ================= 方法 ================= -->
+  <h2>二、AI 开发方法：四步循环</h2>
+  <div class="step"><div class="no">1</div><div>
+    <h4>说需求（人）</h4>
+    <p>一句话即可：「把 F407 所有外设都用上，每个外设单独 .c/.h，带测试和注释」。</p>
+  </div></div>
+  <div class="step"><div class="no">2</div><div>
+    <h4>AI 拆解 + 出方案（AI 提案 → 你拍板）</h4>
+    <p>AI 先做可行性：引脚预算矩阵（哪些脚被焊死、哪些外设冲突）、
+      给出 2~3 个方案对比表，<b>方向由你选定</b>后动工。</p>
+  </div></div>
+  <div class="step"><div class="no">3</div><div>
+    <h4>生成代码 + 配置（AI）</h4>
+    <p>CubeMX 配置 → 驱动模块 → 菜单测试框架 → 配套文档，一次产出。</p>
+  </div></div>
+  <div class="step"><div class="no">4</div><div>
+    <h4>构建 + 上板验证（机械判据说话）</h4>
+    <p>编译三判据（退出码 / 0 错 0 警 / hex 时间戳）→ 烧录 → 串口逐模块
+      <code>PASS</code>。报错把日志原样贴回给 AI，它修。</p>
+  </div></div>
+
+  <!-- ================= 软件 ================= -->
+  <h2>三、要装哪些软件（全部免费或有社区版）</h2>
+  <table>
+    <tr><th style="width:220px">软件</th><th style="width:150px">用途</th><th>说明</th></tr>
+    <tr><td><b>Claude Code / Zcode 等 AI 编码工具</b></td><td>AI 开发主力</td><td>装完登录即用——你只管说需求、拍板方案、
+      看验证结果；写代码/算寄存器/修报错都是它的活。其余软件装完路径告诉它即可</td></tr>
+    <tr><td><b>Keil MDK 5.31</b></td><td>编译出 hex</td><td>社区版限 32KB 代码，本工程够用；装完装
+      <b>CMSIS-DAP 驱动</b>（板载调试器）</td></tr>
+    <tr><td><b>STM32CubeMX 6.11</b></td><td>引脚/时钟配置生成</td><td>ST 官网注册即下；生成 MDK 工程</td></tr>
+    <tr><td><b>Python 3.12+</b></td><td>AI 工具链 CLI</td><td>构建/烧录/日志判读的自动化入口</td></tr>
+    <tr><td><b>MobaXterm / PuTTY</b></td><td>串口终端</td><td>115200 8N1，跑验证菜单</td></tr>
+    <tr><td>git（可选）</td><td>版本管理</td><td>AI 每步可回滚</td></tr>
+    <tr><td>示波器/逻辑分析仪（可选）</td><td>看波形加分</td><td>PWM/死区/CAN 位时序实测</td></tr>
+  </table>
+
+  <h3 style="font-size:24px;margin:24px 0 12px">AI 编码工具推荐插件 / MCP（装上如虎添翼）</h3>
+  <table>
+    <tr><th style="width:260px">插件 / MCP</th><th style="width:170px">干什么</th><th>效果（本工程实测）</th></tr>
+    <tr><td><b>stm32cubemx MCP</b><br><code>claude mcp add stm32cubemx</code></td><td>让 AI 直接操控 CubeMX</td><td>建工程/配引脚/改时钟/校验/生成代码全自动——
+      本工程 90 脚引脚地图和 168MHz 时钟树就是 AI 经它配出来的</td></tr>
+    <tr><td><b>chrome-devtools MCP</b></td><td>网页预览与截图</td><td>HTML 讲义/报告页让 AI 自己渲染自查（本演示页即用它截图质检）</td></tr>
+    <tr><td><b>serial / jlink 类 MCP（可选）</b></td><td>烧录与串口直达</td><td>配合板载 DAP，AI 直接看板上 PASS/FAIL，闭环不再等你贴日志</td></tr>
+    <tr><td><b>fetch / web-reader MCP（可选）</b></td><td>查手册与资料</td><td>需要外部资料时 AI 自取，企业代理网络也可用</td></tr>
+  </table>
+  <div class="ok" style="margin-top:12px"><b>80% 的含义：</b>AI 工具装好 + 上面四五样常规软件装完 + 板子插上线，
+    剩下的 20%（写配置、写驱动、跑验证）AI 全程代劳——出问题把报错原文贴给它就行。</div>
+  <p class="note" style="margin-top:12px">硬件：F407VE 开发板 ×1、双 Type-C 线 ×2（供电+DAP）、杜邦线 ×2。</p>
+
+  <!-- ================= 过程 ================= -->
+  <h2>四、大概过程（从零到 hex）</h2>
+  <div class="step"><div class="no">1</div><div>
+    <h4>装软件 + 接板子</h4>
+    <p>上表装完，板子双 Type-C：左口用户 USB，右口 DAP（供电+调试+串口三合一）。</p>
+  </div></div>
+  <div class="step"><div class="no">2</div><div>
+    <h4>对 AI 说需求</h4>
+    <p>例如「建一个工程把所有外设用上，每个外设单独文件带测试」。AI 先回方案表，选一个。</p>
+  </div></div>
+  <div class="step"><div class="no">3</div><div>
+    <h4>AI 生成工程</h4>
+    <p>CubeMX 配置 + 各外设模块 + 串口菜单 + 文档。本例真实产出见
+      <code>projects/f407-periph-lab</code>。</p>
+  </div></div>
+  <div class="step"><div class="no">4</div><div>
+    <h4>构建（一条命令）</h4>
+    <p><code>python -m autostm32.cli build --project projects/f407-periph-lab</code>
+      → 三判据自动判定，不过贴日志给 AI。</p>
+  </div></div>
+  <div class="step"><div class="no">5</div><div>
+    <h4>烧录 + 上板逐模块验证</h4>
+    <p>串口敲 <code>help</code>，按下面第五节的表逐条跑 <code>PASS</code>。</p>
+  </div></div>
+
+  <!-- ================= 验证准备 ================= -->
+  <h2>五、验证准备（照单备齐，5 分钟）</h2>
+  <div class="grid g2">
+    <div class="card">
+      <h3>硬件清单</h3>
+      <p>① F407VE 开发板 v5.5<br>
+        ② Type-C 线 ×2：右口（DAP）接电脑 = 供电+烧录+串口；左口（USB Slave）给 USB 实验用<br>
+        ③ 杜邦线 ×2（母对母）：<b>PA4→PB0</b>、<b>PA8→PB3</b><br>
+        ④ （可选）示波器/逻辑分析仪</p>
+    </div>
+    <div class="card">
+      <h3>软件就位确认</h3>
+      <p>① 设备管理器能看到 CMSIS-DAP（VID 0416）和虚拟串口（COMx）<br>
+        ② hex 已生成：<code>firmware/MDK-ARM/f407-periph-lab/f407-periph-lab.hex</code><br>
+        ③ Keil 工程 <code>.uvoptx</code> 调试器选 <b>CMSIS-DAP</b>（不是 ST-Link！这是本板第一坑）</p>
+    </div>
+  </div>
+
+  <!-- ================= 操作指导 ================= -->
+  <h2>六、操作指导（烧录后照表跑）</h2>
+  <div class="ok"><b>接线口诀：</b>黄线 PA4→PB0（DAC 出、ADC 进）；蓝线 PA8→PB3（PWM 出、捕获进）。
+    就两根，插错也不烧板——最多命令 FAIL，拔掉重插即可。</div>
+
+  <table>
+    <tr><th style="width:120px">串口输入</th><th>预期输出（判据）</th><th style="width:110px">需要接线</th></tr>
+    <tr><td><code>help</code></td><td>列出全部命令（26 条）</td><td>—</td></tr>
+    <tr><td><code>uart</code></td><td><b>PASS uart</b>（BRR 回读 + TC 发送 + RX 超时窗）</td><td>—</td></tr>
+    <tr><td><code>gpio</code></td><td><b>PASS gpio</b>（寄存器回读 + KEY 静止电平 + LED 闪两下目视）</td><td>—</td></tr>
+    <tr><td><code>tim_pwm</code></td><td><b>PASS tim_pwm</b>（示波器看 PA8/PD12 = 1kHz 方波）</td><td>—</td></tr>
+    <tr><td><code>tim_basic</code></td><td><b>PASS tim_basic</b>（TIM5 1s 中断 + TIM6/7 轮询标志）</td><td>—</td></tr>
+    <tr><td><code>tim_ic</code></td><td><b>PASS tim_ic (no signal, 0 Hz)</b> 或实测频率</td><td>—</td></tr>
+    <tr><td><code>tim_enc</code></td><td><b>PASS tim_enc (idle)</b>；接编码器则转出转速</td><td>—</td></tr>
+    <tr><td><code>tim_adv</code></td><td><b>PASS tim_adv</b>（死区 1µs，DTG=0x94，示波器看 PC7/PB14）</td><td>—</td></tr>
+    <tr><td><code>can_lb</code></td><td><b>PASS can_lb</b>（回环自发自收，ID=0x123 数据比对）</td><td>—</td></tr>
+    <tr><td><code>crc_rng</code></td><td><b>PASS crc_rng</b>（CRC 硬件 vs 软件镜像一致 + RNG 8 连读）</td><td>—</td></tr>
+    <tr><td><code>rtc</code></td><td><b>PASS rtc (lse ok, calendar 1Hz)</b>（秒字段走 1）</td><td>—</td></tr>
+    <tr><td><code>wdg</code></td><td><b>PASS wdg</b>（配置回读 + 复位来源快照，安全不复位）</td><td>—</td></tr>
+    <tr><td><code>pwr</code></td><td><b>PASS pwr (sleep 1xx ms)</b>（Sleep 100ms 实测）</td><td>—</td></tr>
+    <tr><td><code>flash_iap</code></td><td><b>PASS flash_iap</b>（末扇区擦写，断电数据保留）</td><td>—</td></tr>
+    <tr><td><code>i2c_ee</code></td><td><b>PASS i2c_ee</b>（写 0x55/0xAA 读回比对）</td><td>—</td></tr>
+    <tr><td><code>spi_flash</code></td><td><b>PASS spi_flash</b>（JEDEC ID = EF 40 18 + 页写读回）</td><td>—</td></tr>
+    <tr><td><code>sdio_tf</code></td><td><b>PASS sdio_tf</b>（插 TF 卡：识别 + 容量打印；无卡 SKIP）</td><td>插 TF 卡</td></tr>
+    <tr><td><code>adc</code></td><td><b>PASS adc (vrefint …)</b>（内部基准 1.21V 反推 VDDA）</td><td>—</td></tr>
+    <tr><td><code>dac</code></td><td><b>PASS dac</b>（DOR 三点回读）</td><td>—</td></tr>
+    <tr><td><code>dma</code></td><td><b>PASS dma</b>（内存搬运 64 字 + 串口 DMA 发送 DMA-TX-OK）</td><td>—</td></tr>
+    <tr><td><code>exti</code></td><td><b>PASS exti (3 presses)</b>——按 KEY2 三次（6 秒内）</td><td>按板载键</td></tr>
+    <tr><td><code>oled</code></td><td><b>PASS oled</b>（屏上显示 F407-PERIPH-LAB / I2C OLED OK）</td><td>插 OLED（选配）</td></tr>
+    <tr><td><code>dac_adc_loop</code></td><td>三步 500/1650/2800mV：<b>|Δ|≤60mV 判 PASS</b>（DAC↔ADC 对账）</td><td class="r" style="color:#8a3550"><b>PA4→PB0</b></td></tr>
+    <tr><td><code>pwm_ic_loop</code></td><td>实测 950~1050Hz 判 <b>PASS</b>（PWM↔捕获 对账）</td><td class="r" style="color:#8a3550"><b>PA8→PB3</b></td></tr>
+  </table>
+
+  <div class="warn"><b>演示命令警示（会复位/进低功耗，录屏时慎点）：</b>
+    <code>wdg_test</code> / <code>wdg_reset_demo</code>：启动看门狗后故意不喂 → 板子复位循环（演示看门狗咬人，复位后串口会打出复位来源）。
+    <code>pwr_stop_demo</code>：进入 Stop 低功耗，串口假死，按 <b>KEY1</b> 唤醒或按 NRST 复位。</div>
+
+  <div class="term"><span class="c"># 期望的验证会话样子（节选）</span>
+menu&gt; <span class="y">uart</span>
+<span class="g">PASS uart</span>
+menu&gt; <span class="y">dac_adc_loop</span>
+<span class="c">[需要杜邦线 PA4→PB0]</span>
+step1 set=500mV  adc=512mV  |Δ|=12mV  <span class="g">OK</span>
+step2 set=1650mV adc=1668mV |Δ|=18mV  <span class="g">OK</span>
+step3 set=2800mV adc=2775mV |Δ|=25mV  <span class="g">OK</span>
+<span class="g">PASS dac_adc_loop</span>
+menu&gt; <span class="y">pwm_ic_loop</span>
+<span class="c">[需要杜邦线 PA8→PB3]</span>
+measured = 1000 Hz (target 1000, window 1s)
+<span class="g">PASS pwm_ic_loop</span></div>
+
+  <div class="foot">
+    本页对应工程 <code>projects/f407-periph-lab</code> · 31 集教程见 tutorials/releases ·
+    每个外设的 CubeMX 配置表在 docs/periph/
+  </div>
+</div>
+</body>
+</html>

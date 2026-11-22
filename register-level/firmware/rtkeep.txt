@@ -1,0 +1,3 @@
+config load "D:/ClaudeCodeWorkSpace/AutoSTM32/projects/f407-periph-lab/firmware/f407-periph-lab.ioc"
+config saveas "D:/ClaudeCodeWorkSpace/AutoSTM32/projects/f407-periph-lab/firmware/rt_keep.ioc"
+exit
