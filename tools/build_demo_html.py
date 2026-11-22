@@ -498,7 +498,7 @@ python -I tools/menu_autotest.py # 串口 COM18 115200，22 项自动
             "\n".join(pages_html), "\n".join(timeline_html),
             blind_rows, verdict_rows)
 
-    out = ROOT / "demo.html"
+    out = ROOT / "HAL外设开发与调试报告.html"
     out.write_text(doc, encoding="utf-8")
     print("written %s (%d KB, %d pages embedded)"
           % (out, out.stat().st_size // 1024, len(MODULES) + len(EXTRA_NAV)))

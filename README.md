@@ -30,7 +30,17 @@ python -I tools/menu_autotest.py
 - 菜单交互：任意串口终端连 COM18，敲 `help` 看全部命令
 - 闭环验证需两根杜邦线：PA4→PC0、PA8→PB3
 - 报告：`docs/test-report.md`（最终回归 PASS 19 / KNOWN 1 / FAIL 0）
-- 单文件版开发+调试报告：`demo.html`（浏览器直接打开）
+- 单文件版开发+调试报告：`HAL外设开发与调试报告.html`（在线预览链接见下）
+
+## 在线预览（浏览器直接打开）
+
+> 前提：仓库 Settings → Pages → Deploy from branch `main` / root → Save（一次设置）。
+
+- **[HAL 外设开发与调试报告](https://sxbg.github.io/f407-periph-lab-hal/HAL%E5%A4%96%E8%AE%BE%E5%BC%80%E5%8F%91%E4%B8%8E%E8%B0%83%E8%AF%95%E6%8A%A5%E5%91%8A.html)** —— 单文件开发+调试全过程报告
+- **[项目概述（含开发全程实录）](https://sxbg.github.io/f407-periph-lab-hal/%E6%A6%82%E8%BF%B0.html)** —— 展示页：方法、8 案排障、双版本选用
+- Pages 未开启时的备选（GitHub 源码渲染）：
+  [报告](https://htmlpreview.github.io/?https://github.com/sxbg/f407-periph-lab-hal/blob/main/HAL%E5%A4%96%E8%AE%BE%E5%BC%80%E5%8F%91%E4%B8%8E%E8%B0%83%E8%AF%95%E6%8A%A5%E5%91%8A.html) ·
+  [概述](https://htmlpreview.github.io/?https://github.com/sxbg/f407-periph-lab-hal/blob/main/%E6%A6%82%E8%BF%B0.html)
 
 ## 已知边界（详见 docs/test-report.md §4 与 knowledge #17/#18）
 

@@ -17,3 +17,4 @@ archive/
 # J-Link debris (command files named as bare hex addresses)
 [0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*
 firmware/probeT.ioc
+firmware/MDK-ARM/*/*.htm
