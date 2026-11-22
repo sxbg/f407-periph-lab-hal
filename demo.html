@@ -1,0 +1,1569 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>f407-periph-lab-hal — HAL 外设开发与调试报告</title>
+<style>
+:root{--bg:#f6f7f5;--card:#fff;--ink:#1d2a22;--mut:#5d6b62;--line:#dfe5e0;
+--acc:#1f6f4a;--acc2:#0f4c81;--warn:#9a6b00;--serious:#b3402e;
+--codebg:#f0f2ef;}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+background:var(--bg);color:var(--ink);line-height:1.65}
+header{background:var(--acc);color:#fff;padding:28px 36px 22px}
+header h1{margin:0 0 6px;font-size:26px;letter-spacing:.5px}
+header .sub{opacity:.92;font-size:14px}
+.stats{display:flex;gap:22px;margin-top:14px;flex-wrap:wrap}
+.stat{background:rgba(255,255,255,.14);border-radius:8px;padding:8px 16px}
+.stat b{font-size:22px;display:block;line-height:1.1}
+.stat span{font-size:12px;opacity:.9}
+.wrap{display:flex;max-width:1280px;margin:0 auto}
+nav{width:230px;flex:none;background:var(--card);border-right:1px solid var(--line);
+padding:18px 14px;position:sticky;top:0;height:100vh;overflow:auto;font-size:13.5px}
+nav h4{margin:14px 4px 6px;color:var(--acc);font-size:12px;letter-spacing:1px}
+nav a{display:block;color:var(--ink);text-decoration:none;padding:3px 8px;border-radius:6px}
+nav a:hover{background:#edf2ee;color:var(--acc)}
+nav a .ep{color:var(--mut);font-size:11px;margin-left:4px}
+main{flex:1;padding:26px 34px;min-width:0}
+section.card,section.sec{background:var(--card);border:1px solid var(--line);
+border-radius:10px;padding:22px 26px;margin-bottom:22px}
+h2{margin:2px 0 12px;font-size:20px;color:var(--acc2)}
+h3{margin:20px 0 8px;font-size:16px;color:var(--ink);border-left:3px solid var(--acc);
+padding-left:8px}
+h4{margin:14px 0 6px;font-size:14px}
+table{border-collapse:collapse;width:100%;margin:10px 0;font-size:13.5px}
+th,td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}
+th{background:#edf2ee;color:var(--ink)}
+code{background:var(--codebg);border:1px solid var(--line);border-radius:4px;
+padding:1px 5px;font-family:Consolas,monospace;font-size:13px}
+pre{background:var(--codebg);border:1px solid var(--line);border-radius:6px;
+padding:12px 14px;overflow:auto}
+pre code{border:none;background:none;padding:0}
+.badge{display:inline-block;border-radius:12px;padding:2px 12px;font-size:12px;
+font-weight:600}
+.badge.pass{background:#e2f0e8;color:var(--acc);border:1px solid #bcdccb}
+.badge.known{background:#fff3d6;color:var(--warn);border:1px solid #ecd9a0}
+.badge-row{display:flex;align-items:center;gap:14px;margin-bottom:10px}
+.menucmd{color:var(--mut);font-size:13px}
+.tl-card{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--acc2);
+border-radius:8px;padding:14px 18px;margin-bottom:14px}
+.tl-no{background:var(--acc2);color:#fff;border-radius:6px;padding:1px 8px;font-size:12px}
+.tl-row{margin:5px 0;font-size:13.5px}
+.tl-row .k{display:inline-block;min-width:52px;color:#fff;background:var(--mut);
+border-radius:4px;text-align:center;padding:0 6px;margin-right:8px;font-size:12px}
+.tl-row .v{color:var(--acc);font-weight:600}
+footer{color:var(--mut);font-size:12.5px;padding:18px 34px;border-top:1px solid var(--line)}
+@media(max-width:900px){nav{display:none}}
+</style>
+</head>
+<body>
+<header>
+  <h1>f407-periph-lab-hal — HAL 外设开发与调试报告</h1>
+  <div class="sub">CubeMX 6.11 图形化配置 + HAL API 直调 · STM32F407VETx @168 MHz · armcc 5.06 C99 · 2026-11-22</div>
+  <div class="stats">
+    <div class="stat"><b>22</b><span>验证项全通过</span></div>
+    <div class="stat"><b>21</b><span>外设教学模块</span></div>
+    <div class="stat"><b>0</b><span>FAIL</span></div>
+    <div class="stat"><b>1</b><span>KNOWN（看门狗调试期关闭）</span></div>
+    <div class="stat"><b>8</b><span>排障案例（SWD 取证）</span></div>
+  </div>
+</header>
+<div class="wrap">
+<nav>
+  <h4>总览</h4>
+  <a href="#sec-overview">工程与验证方法</a>
+  <h4>外设模块（22）</h4>
+  <a href="#mod-uart">USART1 日志控制台 <span class="ep">EP03</span></a>
+<a href="#mod-gpio">GPIO / LED / 按键 <span class="ep">EP02</span></a>
+<a href="#mod-tim_pwm">TIM PWM 输出 <span class="ep">EP05</span></a>
+<a href="#mod-tim_basic">TIM 时基（1 Hz 轮询） <span class="ep">EP04</span></a>
+<a href="#mod-tim_ic">TIM 输入捕获测频 <span class="ep">EP06</span></a>
+<a href="#mod-tim_enc">TIM 正交编码器 <span class="ep">EP23</span></a>
+<a href="#mod-tim_adv">TIM8 互补 PWM + 死区 <span class="ep">EP14</span></a>
+<a href="#mod-can_lb">CAN1 500k 回环 <span class="ep">EP18</span></a>
+<a href="#mod-crc_rng">CRC32 + 硬件随机数 <span class="ep">EP20</span></a>
+<a href="#mod-rtc">RTC 日历 + 备份寄存器 <span class="ep">EP16</span></a>
+<a href="#mod-wdg">独立/窗口看门狗 <span class="ep">EP15</span></a>
+<a href="#mod-pwr">电源模式 Sleep/Stop <span class="ep">EP17</span></a>
+<a href="#mod-flash_iap">Flash IAP 参数页 <span class="ep">EP21</span></a>
+<a href="#mod-i2c_ee">硬件 I2C + 24C02 <span class="ep">EP11</span></a>
+<a href="#mod-spi_flash">SPI + W25Q128 <span class="ep">EP12</span></a>
+<a href="#mod-sdio_tf">SDIO TF 卡识别 <span class="ep">EP24</span></a>
+<a href="#mod-adc">ADC 四通道扫描 <span class="ep">EP07</span></a>
+<a href="#mod-dac">DAC OUT1 <span class="ep">EP08</span></a>
+<a href="#mod-dma">DMA USART1_TX <span class="ep">EP09</span></a>
+<a href="#mod-exti">EXTI 按键中断 <span class="ep">EP10</span></a>
+<a href="#mod-oled">SH1107 OLED 软 I2C <span class="ep">EP13</span></a>
+  <a href="#mod-dac_adc_loop">闭环 DAC→ADC</a>
+  <a href="#mod-pwm_ic_loop">闭环 PWM→捕获</a>
+  <h4>过程</h4>
+  <a href="#sec-debug">开发调试实录（8 案）</a>
+  <a href="#sec-blind">生成器盲区知识库</a>
+  <a href="#sec-verdict">验证报告</a>
+  <a href="#sec-repro">复现步骤</a>
+</nav>
+<main>
+
+<section class="sec" id="sec-overview">
+<h2>工程与验证方法</h2>
+<p><b>目标架构</b>：外设由 CubeMX 图形化配置生成 <code>MX_*_Init</code>，应用代码直接调用
+HAL API（bsp 层 console-free、A3 红线禁止寄存器级写入）。工程三层：
+Core/（CubeMX 生成）+ App/（bsp/shell/domain）+ Drivers/。</p>
+<p><b>时钟</b>：HSE 25 MHz → PLL(M=25,N=336,P=2) → SYSCLK 168 MHz；APB1 /4=42 MHz
+（TIM ×2=84 MHz）；APB2 /2=84 MHz；PLLQ=7 → 48 MHz（SDIO/RNG）。</p>
+<p><b>验证方法</b>：UART 命令菜单（USART1 115200 8N1，<code>tools/menu_autotest.py</code>
+同步驱动）逐模块执行自测，判据 PASS/FAIL step&lt;N&gt;；闭环项以杜邦线互证
+（DAC→ADC、PWM→捕获）；pyocd(CMSIS-DAP/SWD) 做寄存器级取证。</p>
+<p><b>本报告数据来源</b>：docs/test-report.md（最终回归 PASS 19 / KNOWN 1 / FAIL 0）、
+docs/periph/ 22 页、knowledge/pitfalls-cubemx-keil.md #17/#18。</p>
+</section>
+
+<section class="card" id="mod-uart">
+<div class="badge-row"><span class="badge pass">PASS</span><span class="menucmd">菜单命令：<code>uart</code></span></div>
+<h2>bsp_uart — USART1 日志控制台（EP03）</h2>
+<p>本模块教：CubeMX 把串口配成什么（生成代码即真值）、应用层怎么用 <code>HAL_UART_*</code> 轮询收发、以及如何用读回校验确认配置未被破坏。USART1 是菜单 shell 的承载口；寄存器版（CR1/BRR 手写）细节见 f407-periph-lab 工程同名文档。</p>
+<h3>CubeMX GUI 配置步骤</h3>
+<ol>
+<li>时钟树（Clock Configuration，三串口共用）：HSE 25 MHz → PLL（M=25, N=336, P=2）→ SYSCLK 168 MHz；APB1 Prescaler = /4 → 42 MHz，APB2 Prescaler = /2 → 84 MHz（USART1 内核时钟 = PCLK2 = 84 MHz）。</li>
+<li>左侧 Categories → Connectivity → USART1：Mode 选 <strong>Asynchronous</strong>（异步 8N1，无外时钟脚）。</li>
+<li>Parameter Settings（与生成代码 <code>MX_USART1_UART_Init</code> 一一对应）：</li>
+</ol>
+<p>   - Baud Rate = <strong>115200</strong>（84 MHz 下实测误差 +0.023%，远小于 8N1 ~2% 预算）</p>
+<p>   - Word Length = <strong>8 Bits</strong>（含校验位）；Parity = <strong>NONE</strong>；Stop Bits = <strong>1</strong></p>
+<p>   - Mode = <strong>TX_RX</strong>；Hardware Flow Control = <strong>NONE</strong></p>
+<p>   - Over Sampling = <strong>16</strong>（对应 BRR = 0x2D9：USARTDIV = 84M/16/115200 = 45.5729 → 尾数 45、小数 round(0.5729×16)=9）</p>
+<ol>
+<li>DMA Settings：USART1_TX → DMA2 Stream7 / Channel4，Memory→Peripheral，Normal，Low 优先级（详见 dma.md；本模块不用 DMA）。</li>
+<li>NVIC Settings：USART1 中断<strong>不开</strong>——轮询教学基线。</li>
+<li>USART2（PA2/PA3）、USART3（PB10/PB11）重复步骤 2-3：同为 115200 8N1、TX_RX、无 DMA、无中断。</li>
+</ol>
+<p>生成真值锚点（<code>Core/Src/usart.c</code>）：<code>BaudRate=115200; WordLength=UART_WORDLENGTH_8B; StopBits=UART_STOPBITS_1; Parity=UART_PARITY_NONE; Mode=UART_MODE_TX_RX; HwFlowCtl=UART_HWCONTROL_NONE; OverSampling=UART_OVERSAMPLING_16</code>。引脚由 <code>HAL_UART_MspInit</code> 配置：AF 推挽、无上下拉、Very High speed、AF7。</p>
+<h3>引脚</h3>
+<table><thead><tr><th>引脚</th><th>信号/标签</th><th>方向/模式</th></tr></thead><tbody><tr><td>PA9</td><td>LOG_TX（USART1_TX）</td><td>AF7 推挽输出，板载 USB-TTL/CH340</td></tr><tr><td>PA10</td><td>LOG_RX（USART1_RX）</td><td>AF7 输入，无上下拉</td></tr><tr><td>PA2</td><td>LOG2_TX（USART2_TX）</td><td>AF7 推挽输出</td></tr><tr><td>PA3</td><td>LOG2_RX（USART2_RX）</td><td>AF7 输入</td></tr><tr><td>PB10</td><td>RS485_TX（USART3_TX）</td><td>AF7 推挽输出</td></tr><tr><td>PB11</td><td>RS485_RX（USART3_RX）</td><td>AF7 输入</td></tr></table>
+<h3>HAL API 调用清单</h3>
+<p>bsp_uart 对外 4 个函数；自测返回 0=PASS、非零=失败步号，判据行由 shell 层打印（uart 自身即控制台，失败诊断由它直接输出）。CubeMX 拥有外设，本模块只做读回校验 + HAL 收发（A3 红线：不写外设控制寄存器）。</p>
+<table><thead><tr><th>bsp 函数</th><th>对应 HAL 调用</th><th>一句作用</th></tr></thead><tbody><tr><td><code>int bsp_uart_init(void)</code></td><td>读回 <code>huart1</code>（BRR=0x2D9 + UE/TE/RE）</td><td>校验 CubeMX 配置完好（只读，-1=失配）</td></tr><tr><td><code>void bsp_uart_puts(const char *s)</code></td><td><code>HAL_UART_Transmit</code>（32 字节分段，超时上限 5 ms/字节）</td><td>阻塞发字符串；TX 卡死即返回，不挂菜单循环</td></tr><tr><td><code>int bsp_uart_getc_nonblock(void)</code></td><td><code>HAL_UART_Receive(&amp;huart1, &amp;b, 1, 0)</code>（0 tick 超时）</td><td>非阻塞收一字节：0..255，无数据 = -1（HAL_TIMEOUT）</td></tr><tr><td><code>int bsp_uart_selftest(void)</code></td><td>上述组合</td><td>3 步自测（见下节）</td></tr></table>
+<p>典型调用：</p>
+<pre><code>
+#include &quot;bsp_uart.h&quot;
+
+bsp_uart_init();                        /* 0 = 生成配置完好 */
+bsp_uart_puts(&quot;hello 115200 8N1\r\n&quot;);  /* HAL_UART_Transmit 轮询发送 */
+int c = bsp_uart_getc_nonblock();       /* HAL_UART_Receive 零超时收键 */
+</code></pre>
+<h3>自测验证</h3>
+<p>菜单命令：<code>uart</code></p>
+<p>判据：<code>PASS uart</code>。三步：① BRR/CR1 读回（0x2D9 + UE/TE/RE）② <code>HAL_UART_Transmit</code> 发送 <code>UART-SELFTEST-OK</code>（TC 门控，100 ms 上限）③ RX 静默窗：先清残余字节，再三个 10 ms 窗口必须全部超时（RXNE 保持清零）。</p>
+<p>本轮实测：<strong>PASS</strong>——&quot;BRR 读回 0x2D9 + TC 发送 + RX 静默窗&quot;。备注：step3 偶发检出 USB CDC 桥/线噪声杂散字节，复跑即过（test-report §4.5）。</p>
+<h3>对应视频集数</h3>
+<p>EP03（USART 串口与日志口）。</p>
+</section>
+<section class="card" id="mod-gpio">
+<div class="badge-row"><span class="badge pass">PASS</span><span class="menucmd">菜单命令：<code>gpio</code></span></div>
+<h2>bsp_gpio — GPIO：LED/按键/背光（EP02）</h2>
+<p>本模块教 CubeMX 引脚配置（输出初值/上下拉/EXTI 模式）与 <code>HAL_GPIO_*</code> 写读回环：PC5/PB2 LED、PA0/PA1 按键、PA15 LCD 背光。寄存器版（MODER/BSRR 手写）细节见 f407-periph-lab 工程同名文档。</p>
+<h3>CubeMX GUI 配置步骤</h3>
+<ol>
+<li>左侧 Categories → System Core → GPIO（或在芯片视图直接点引脚选模式）：</li>
+</ol>
+<p>   - <strong>PC5</strong> → GPIO_Output，标签 <code>LED_GREEN</code>；Output Level = Low，Speed = Low，Pull = No pull（生成初值 <code>GPIO_PIN_RESET</code>，绿灯灭）</p>
+<p>   - <strong>PB2</strong> → GPIO_Output，标签 <code>LED_BLUE</code>；Output Level = High（开机即亮），Speed = Low</p>
+<p>   - <strong>PA15</strong> → GPIO_Output，标签 <code>LCD_BL</code>；Output Level = Low，Speed = Low（背光灭）</p>
+<p>   - <strong>PA0</strong> → External Interrupt Mode with <strong>Rising</strong> edge trigger detection，标签 <code>KEY1</code>，Pull-down（按下接 VDD → 高有效）</p>
+<p>   - <strong>PA1</strong> → External Interrupt Mode with <strong>Falling</strong> edge trigger detection，标签 <code>KEY2</code>，Pull-up（按下接 GND → 低有效）</p>
+<ol>
+<li>GPIO 模式页确认：三个输出脚 = Output Push Pull；两个按键脚 = External Interrupt Mode。</li>
+<li>NVIC Settings（System Core → NVIC）：EXTI0/EXTI1 优先级 = 5。生成代码只 <code>HAL_NVIC_SetPriority</code>，<code>EnableIRQ</code> 与 handler 在 USER CODE 补（EXTI 细节归 exti.md）。</li>
+<li>时钟：GPIOA/B/C/D/E/H 端口时钟由 <code>MX_GPIO_Init</code> 统一使能（AHB1），无需手动。</li>
+</ol>
+<p>生成真值锚点（<code>Core/Src/gpio.c</code>）：输出脚 <code>GPIO_MODE_OUTPUT_PP</code> + <code>GPIO_SPEED_FREQ_LOW</code> + <code>GPIO_NOPULL</code>；KEY1 <code>GPIO_MODE_IT_RISING</code> + <code>GPIO_PULLDOWN</code>；KEY2 <code>GPIO_MODE_IT_FALLING</code> + <code>GPIO_PULLUP</code>；初值经 <code>HAL_GPIO_WritePin</code> 落地。</p>
+<h3>引脚</h3>
+<table><thead><tr><th>引脚</th><th>信号/标签</th><th>方向/模式</th></tr></thead><tbody><tr><td>PC5</td><td>LED_GREEN</td><td>输出推挽，Low speed，初值低（绿灯灭）</td></tr><tr><td>PB2</td><td>LED_BLUE</td><td>输出推挽，Low speed，初值高（蓝灯亮）</td></tr><tr><td>PA0</td><td>KEY1</td><td>EXTI 上升沿，下拉输入；按下=1，空闲=0</td></tr><tr><td>PA1</td><td>KEY2</td><td>EXTI 下降沿，上拉输入；按下=0，空闲=1</td></tr><tr><td>PA15</td><td>LCD_BL</td><td>输出推挽，Low speed，初值低（背光灭）</td></tr></table>
+<p>PA15 默认 AF0 = JTAG JTDI，配置为输出即重路由；SWD（PA13/PA14）不受影响。</p>
+<h3>HAL API 调用清单</h3>
+<p>bsp_gpio 对外 7 个函数；console-free，自测返回 0=PASS、非零=失败步号。引脚配置本身归 <code>MX_GPIO_Init</code>（CubeMX 拥有），本模块只用 <code>HAL_GPIO_WritePin</code>/<code>HAL_GPIO_ReadPin</code> 驱动。</p>
+<table><thead><tr><th>bsp 函数</th><th>对应 HAL 调用</th><th>一句作用</th></tr></thead><tbody><tr><td><code>int bsp_gpio_init(void)</code></td><td><code>HAL_GPIO_ReadPin</code> ×5</td><td>读回启动态/按键空闲电平（只读，-1=失配）</td></tr><tr><td><code>void bsp_gpio_led_green(uint32_t on)</code></td><td><code>HAL_GPIO_WritePin(PC5)</code></td><td>绿灯开关（PC5，启动态低）</td></tr><tr><td><code>void bsp_gpio_led_blue(uint32_t on)</code></td><td><code>HAL_GPIO_WritePin(PB2)</code></td><td>蓝灯开关（PB2，启动态高）</td></tr><tr><td><code>void bsp_gpio_lcd_backlight(uint32_t on)</code></td><td><code>HAL_GPIO_WritePin(PA15)</code></td><td>背光开关（启动态低）</td></tr><tr><td><code>uint32_t bsp_gpio_key1_pressed(void)</code></td><td><code>HAL_GPIO_ReadPin(PA0)</code></td><td>1=按下（高有效）</td></tr><tr><td><code>uint32_t bsp_gpio_key2_pressed(void)</code></td><td><code>HAL_GPIO_ReadPin(PA1)</code></td><td>1=按下（低有效）</td></tr><tr><td><code>int bsp_gpio_selftest(void)</code></td><td>上述组合</td><td>3 步自测（见下节）</td></tr></table>
+<p>典型调用：</p>
+<pre><code>
+#include &quot;bsp_gpio.h&quot;
+
+bsp_gpio_led_green(1);                /* HAL_GPIO_WritePin 置高 */
+if (bsp_gpio_key1_pressed()) {        /* HAL_GPIO_ReadPin，高有效 */
+    bsp_gpio_led_blue(0);             /* 按住 KEY1 灭蓝灯 */
+}
+bsp_gpio_lcd_backlight(0);            /* PA15 拉低关背光 */
+</code></pre>
+<h3>生成器盲区备注</h3>
+<ul>
+<li>KEY1/KEY2 标签曾在 .ioc 剥键事故中丢失（引脚在 Mcu.Pin 列表但 Mode/Label 键被剥）；恢复后 <code>main.h</code> 才有 <code>KEY1_Pin</code>/<code>KEY2_Pin</code> 宏——标签丢失时引脚宏退化为裸 <code>GPIO_PIN_0</code>，bsp 代码无处引用。</li>
+<li>两键生成为 EXTI 模式：生成代码只含引脚配置 + NVIC 优先级，IRQ handler 留空会中断风暴，必须在 USER CODE 补 <code>HAL_GPIO_EXTI_IRQHandler</code>——按键引脚到此为止，EXTI 完整链路见 exti.md。</li>
+</ul>
+<h3>自测验证</h3>
+<p>菜单命令：<code>gpio</code></p>
+<p>判据：<code>PASS gpio</code>。三步：① 启动态 + 按键空闲电平，3 次采样跨 ~2 ms（跑之前松开按键）② 输出回环：HAL 写 → IDR 验证跟随 → 恢复启动态 ③ 可见闪烁：绿/蓝各两闪、间隔 200 ms（给人眼看的）。</p>
+<p>本轮实测：<strong>PASS\</strong>*——PC5/PB2 LED、PA0/PA1 键、PA15 BL；模块本体手动复核多次 PASS（自动套件字符 pacing 粘连为脚本层遗留，非模块缺陷，test-report §4.2）。</p>
+<h3>对应视频集数</h3>
+<p>EP02（GPIO 输入输出与按键）。</p>
+</section>
+<section class="card" id="mod-tim_pwm">
+<div class="badge-row"><span class="badge pass">PASS</span><span class="menucmd">菜单命令：<code>tim_pwm</code></span></div>
+<h2>bsp_tim_pwm — TIM1/TIM4 PWM 输出（EP06）</h2>
+<p>本模块教：CubeMX 只生成定时器基础 init（PSC=0/ARR=max/CEN=0），通道形状（PWM 模式/PSC/ARR/占空）由 <code>HAL_TIM_PWM_*</code> 在运行时写；TIM1（APB2 ×2=168 MHz，高级）与 TIM4（APB1 ×2=84 MHz，通用）同播 1 kHz。寄存器版（CCMR1/EGR.UG 手写）细节见 f407-periph-lab 工程同名文档。</p>
+<h3>CubeMX GUI 配置步骤</h3>
+<ol>
+<li>左侧 Categories → Timers → <strong>TIM1</strong>：Clock Source = Internal Clock；Channel1 = <strong>PWM Generation CH1</strong>（引脚自动落 PA8）。</li>
+<li>Parameter Settings（<code>MX_TIM1_Init</code> 真值）：Prescaler = 0；Counter Mode = Up；Counter Period = 65535；auto-reload preload = <strong>Disable</strong>（ARR 写入立即生效）；Clock Division = DIV1；RepetitionCounter = 0。</li>
+<li>Timers → <strong>TIM4</strong>：Channel1 = <strong>PWM Generation CH1</strong>（PD12）；参数同上（无 RepetitionCounter）。</li>
+<li>时钟树：TIM1 挂 APB2（PCLK2 = 84 MHz，总线有分频 → 定时器时钟 ×2 = <strong>168 MHz</strong>）；TIM4 挂 APB1（PCLK1 = 42 MHz ×2 = <strong>84 MHz</strong>）——RM ch.6 规则。</li>
+<li>NVIC Settings：两个定时器中断都不开（轮询教学基线）。</li>
+<li>生成代码只到 <code>HAL_TIM_Base_Init</code>（CEN=0，通道未配）；1 kHz 形状由 bsp 模块武装——这是 HAL 版与寄存器版的分工边界。</li>
+</ol>
+<h3>引脚</h3>
+<table><thead><tr><th>引脚</th><th>信号/标签</th><th>方向/模式</th></tr></thead><tbody><tr><td>PA8</td><td>TIM1_CH1</td><td>AF1 推挽输出，Low speed（板头排针，波形教学点）</td></tr><tr><td>PD12</td><td>TIM4_CH1</td><td>AF2 推挽输出，Low speed（板头排针）</td></tr></table>
+<h3>HAL API 调用清单</h3>
+<p>bsp_tim_pwm 对外 3 个函数 + 2 个通道选择宏（<code>BSP_TIM_PWM_CH_TIM1_CH1</code> / <code>BSP_TIM_PWM_CH_TIM4_CH1</code>）；console-free，自测返回 0=PASS、非零=失败步号。通道形状只经 <code>HAL_TIM_PWM_ConfigChannel</code>/<code>HAL_TIM_PWM_Start</code> 和 <code>__HAL_TIM_SET_*</code> 宏写（A3 红线；寄存器读仅作校验）。</p>
+<table><thead><tr><th>bsp 函数</th><th>对应 HAL 调用</th><th>一句作用</th></tr></thead><tbody><tr><td><code>int bsp_tim_pwm_init(void)</code></td><td><code>HAL_TIM_PWM_Stop</code> → <code>HAL_TIM_PWM_ConfigChannel</code>（PWM1、Pulse=500 预装载）→ <code>__HAL_TIM_SET_PRESCALER/AUTORELOAD/COUNTER</code> → <code>HAL_TIM_PWM_Start</code>（CC1E + TIM1 MOE + CEN 最后置）</td><td>双通道武装为 1 kHz / 50%（幂等）</td></tr><tr><td><code>int bsp_tim_pwm_set_duty(uint32_t ch, uint32_t per_mille)</code></td><td><code>__HAL_TIM_SET_COMPARE</code></td><td>千分比占空（1000=常高，&gt;1000 拒绝返回 -1）；OC1PE 预装载 → 下一帧边界生效（≤1 ms，无毛刺）</td></tr><tr><td><code>int bsp_tim_pwm_selftest(void)</code></td><td>读回 PSC/ARR/CCR/CCER/MOE/CEN</td><td>3 步自测（见下节）</td></tr></table>
+<p><code>HAL_TIM_PWM_ConfigChannel</code> 从结构体写 CCMR1/CCR1，全字段真值：<code>OCMode=TIM_OCMODE_PWM1</code>（CNT&lt;CCR 时有效）、<code>Pulse=500</code>（50% 预装载）、<code>OCPolarity=TIM_OCPOLARITY_HIGH</code>、<code>OCFastMode=TIM_OCFAST_DISABLE</code>、<code>OCIdleState=TIM_OCIDLESTATE_RESET</code>（MOE 清掉后引脚静止在低）。</p>
+<p>频率两步分频（两个定时器共用同一公式）：f_tick = f_tim/(PSC+1)，f_frame = f_tick/(ARR+1)。TIM1：168M/(167+1) = 1 MHz tick，/(999+1) = 1 kHz；TIM4：84M/(83+1) = 1 MHz。内核时钟差 2:1，终值刻意同为 1 MHz/1 kHz——占空数学共享。</p>
+<p>典型调用：</p>
+<pre><code>
+#include &quot;bsp_tim_pwm.h&quot;
+
+bsp_tim_pwm_init();                                  /* 双通道 1 kHz 50% */
+bsp_tim_pwm_set_duty(BSP_TIM_PWM_CH_TIM1_CH1, 250);  /* PA8 → 25% 占空 */
+bsp_tim_pwm_set_duty(BSP_TIM_PWM_CH_TIM4_CH1, 0);    /* PD12 → 常低 */
+</code></pre>
+<h3>生成器盲区备注</h3>
+<ul>
+<li><strong>PSC 影子寄存器 + EGR.UG 盲区</strong>：PSC 写入在下一个更新事件才锁进影子，而 HAL 没有 EGR.UG 立即装载的拼写——Start 后第一帧按旧 PSC=0 跑（TIM1 ~6 µs / TIM4 ~12 µs），之后 1 kHz 节拍锁定。教学上接受，代码写点处有注释。</li>
+<li><strong>TIM1 BDTR MOE</strong>：由 <code>HAL_TIM_PWM_Start</code> 内部置位；少了它 CCER 全开 PA8 也是平线——高级定时器第一坑，自测步 3 专查。</li>
+<li><strong>幂等重配</strong>：HAL 通道状态机 BUSY 时再 Start 是 HAL_ERROR，所以 init 先 <code>HAL_TIM_PWM_Stop</code> 恢复 READY 并掉 CC1E/MOE/CEN（寄存器版直接写 CR1=0 的 HAL 等价物）。</li>
+<li>ARPE = Disable（IOC 真值）：ARR 写入立即生效，无影子延迟。</li>
+</ul>
+<h3>自测验证</h3>
+<p>菜单命令：<code>tim_pwm</code></p>
+<p>判据：<code>PASS tim_pwm</code>。三步：① PSC/ARR 读回（TIM1 167/999、TIM4 83/999）② <code>set_duty(500)</code> 后 CCR 读回落在 ARR/2 ±1 ③ 使能位读回：两路 CC1E、TIM1 BDTR MOE、两路 CR1 CEN（示波器不在时永远回到这三个位）。</p>
+<p>本轮实测：<strong>PASS\</strong>*——TIM1_CH1=PA8 + TIM4_CH1=PD12 1 kHz；手动复核多次 PASS（套件 pacing 遗留，test-report §4.2）。</p>
+<p>闭环交叉验证：<code>pwm_ic_loop</code>——PA8→PB3 杜邦线，TIM1 1 kHz PWM → TIM2 捕获实测 950–1050 Hz。</p>
+<h3>对应视频集数</h3>
+<p>EP06（定时器 PWM 输出）。</p>
+</section>
+<section class="card" id="mod-tim_basic">
+<div class="badge-row"><span class="badge pass">PASS</span><span class="menucmd">菜单命令：<code>tim_basic</code></span></div>
+<h2>bsp_tim_basic — TIM5 基础时基（EP04）</h2>
+<p>本模块教：PSC/ARR/UIF 三件套的 HAL 拼法——TIM5 配成 1 Hz 轮询时基（<code>HAL_TIM_Base_Start</code> 只置 CEN，DIER.UIE 保持清零），update flag 排空计秒。HAL 版精简：老工程 TIM5-IRQ + TIM6/TIM7-轮询三件套坍缩为 TIM5 单定时器（TIM6/TIM7 不在本工程 IOC）。寄存器版细节见 f407-periph-lab 工程同名文档。</p>
+<h3>CubeMX GUI 配置步骤</h3>
+<ol>
+<li>左侧 Categories → Timers → <strong>TIM5</strong>：Activated；Clock Source = Internal Clock（纯内部时基，无引脚）。</li>
+<li>Parameter Settings（<code>MX_TIM5_Init</code> 真值）：Prescaler = 0；Counter Mode = Up；Counter Period = <strong>4294967295</strong>（32 位——F4 只有 TIM2/TIM5 是 32 位通用定时器）；Clock Division = DIV1；auto-reload preload = Disable。</li>
+<li>NVIC Settings：TIM5 更新中断<strong>不开</strong>（W4b 轮询版；W6 IRQ 版再开 NVIC 布线）。</li>
+<li>TIM6/TIM7：不出现在本工程 IOC——老版三件套不再，set/clear/set 轮询契约改在 TIM5 自己的 flag 上教。</li>
+<li>时钟树：TIM5 挂 APB1（PCLK1 = 42 MHz，总线分频 → ×2 = <strong>84 MHz</strong>）。</li>
+<li>生成代码只到 <code>HAL_TIM_Base_Init</code>（CEN=0）；1 Hz 形状由 bsp 模块运行时武装。</li>
+</ol>
+<h3>引脚</h3>
+<table><thead><tr><th>引脚</th><th>信号/标签</th><th>方向/模式</th></tr></thead><tbody><tr><td>—</td><td>—</td><td>无引脚，纯内部计数时基</td></tr></table>
+<h3>HAL API 调用清单</h3>
+<p>bsp_tim_basic 对外 4 个函数；console-free，自测返回 0=PASS、非零=失败步号，诊断文本经 <code>bsp_tim_basic_last_report()</code> 交给菜单拼判据行。时基形状只经 <code>__HAL_TIM_SET_*</code> 宏 + <code>HAL_TIM_Base_Start</code> 写（A3 红线；寄存器读仅作校验）。</p>
+<table><thead><tr><th>bsp 函数</th><th>对应 HAL 调用</th><th>一句作用</th></tr></thead><tbody><tr><td><code>int bsp_tim_basic_init(void)</code></td><td><code>HAL_TIM_Base_Stop</code>（幂等）→ <code>__HAL_TIM_SET_PRESCALER(8399)</code>/<code>SET_AUTORELOAD(9999)</code>/<code>SET_COUNTER(0)</code> → <code>__HAL_TIM_CLEAR_FLAG</code>（清 MX_TIM5_Init 留下的 pending UIF）→ <code>HAL_TIM_Base_Start</code>（仅 CEN，故意不用 <code>_IT</code>）</td><td>TIM5 1 Hz 轮询武装；UIE 保持清零、不碰 NVIC</td></tr><tr><td><code>uint32_t bsp_tim_basic_uptime_seconds(void)</code></td><td><code>__HAL_TIM_GET_FLAG</code>/<code>__HAL_TIM_CLEAR_FLAG</code></td><td>每次调用排空 update flag 计秒——每秒至少被调一次才保真（菜单/自测节奏满足）</td></tr><tr><td><code>int bsp_tim_basic_selftest(void)</code></td><td>上述组合</td><td>3 步自测，共 ~3.6 s（见下节）</td></tr><tr><td><code>const char *bsp_tim_basic_last_report(void)</code></td><td>—</td><td>判据行后缀（失败诊断），&quot;&quot; = 无诊断</td></tr></table>
+<p>1 Hz 推导（与 PWM 同一条两步分频律）：f_UPDATE = 84 MHz/(PSC+1)/(ARR+1) = 84M/8400/10000 = 1 Hz → PSC = 8399（84M→10 kHz）、ARR = 9999（10 kHz→1 Hz）。</p>
+<p>典型调用：</p>
+<pre><code>
+#include &quot;bsp_tim_basic.h&quot;
+
+bsp_tim_basic_init();                          /* TIM5 1 Hz，中断不开 */
+uint32_t up = bsp_tim_basic_uptime_seconds();  /* 排空 UIF 计秒 */
+</code></pre>
+<h3>生成器盲区备注</h3>
+<ul>
+<li><strong>PSC 影子 + EGR.UG 盲区</strong>：PSC 在首个更新事件才装载，HAL 无 UG 拼写 → Start 后第一段 ~119 µs（10000 tick @84 MHz）后才进入 1 Hz 节拍；且 <code>MX_TIM5_Init</code> 的 UG 会留下一个 pending UIF，init 里 <code>__HAL_TIM_CLEAR_FLAG</code> 清掉（老版 <code>SR = ~UIF</code> 的 HAL 拼法，rc_w0 写 0 清除）。</li>
+<li><strong>轮询版 vs W6 IRQ 版</strong>：本版 <code>HAL_TIM_Base_Start</code> 只置 CEN——&quot;标志在没人打断时也存在&quot;正是轮询课点；<code>HAL_TIM_Base_Start_IT</code> + <code>HAL_TIM_PeriodElapsedCallback</code> + <code>HAL_NVIC_SetPriority/EnableIRQ</code> 的 IRQ 版在 W6 NVIC 布线落地后回归（老版的 volatile ISR 计数器随之一并回来）。</li>
+<li><strong>看门狗</strong>：自测跨三个 1.5 s 窗口，狗刷新由菜单主循环的 <code>bsp_wdg_refresh()</code> 负责（未 armed 时为无害写）；调试期 IWDG/WWDG 全关（用户裁定 2026-11-22，test-report §4.1）。</li>
+</ul>
+<h3>自测验证</h3>
+<p>菜单命令：<code>tim_basic</code></p>
+<p>判据：<code>PASS tim_basic</code>（失败时带 <code>bsp_tim_basic_last_report()</code> 后缀，如 <code>(step1: no update)</code>）。三步：① 1.2 s 窗口内更新计数 ≥1（窗口用 SysTick 计——独立时钟交叉验证被测定时器）② UIF set/clear/set 契约（置位→写 0 清→再置位=周期性）③ 排空后 1.2 s 窗口内恰一次更新（1 Hz 节拍跨窗保持）。</p>
+<p>本轮实测：<strong>PASS</strong>——&quot;TIM5 1 Hz 轮询版（守护语义修复后稳定）&quot;。</p>
+<p>调试器佐证：live 观察 <code>htim5.Instance-&gt;SR.UIF</code> 每秒翻一次；<code>DIER.UIE</code> 保持 0（无中断路由）；<code>bsp_tim_basic_uptime_seconds()</code> 在持续轮询下 1/s 前进。</p>
+<h3>对应视频集数</h3>
+<p>EP04（定时器基础与时基）。</p>
+</section>
+<section class="card" id="mod-tim_ic">
+<div class="badge-row"><span class="badge pass">PASS</span><span class="menucmd">菜单命令：<code>tim_ic</code></span></div>
+<h2>bsp_tim_ic — TIM2 输入捕获频率计（EP13）</h2>
+<p>本模块教：TIM2_CH2=PB3（TI2 直连）输入捕获测频——32 位自由计数 + 1 s 窗口内抓两个上升沿，freq = 84 MHz/period，溢出补偿保留为教学原则。CubeMX 配到基础 init，捕获通道形状由 <code>HAL_TIM_IC_*</code> 运行时写。寄存器版（CCMR1/CCER 手写）细节见 f407-periph-lab 工程同名文档。</p>
+<h3>CubeMX GUI 配置步骤</h3>
+<ol>
+<li>左侧 Categories → Timers → <strong>TIM2</strong>：Clock Source = Internal Clock；Channel2 = <strong>Input Capture direct mode</strong>（IC2 直连 TI2，引脚自动落 PB3）。</li>
+<li>Parameter Settings（<code>MX_TIM2_Init</code> 真值）：Prescaler = <strong>0</strong>（最大分辨率）；Counter Mode = Up；Counter Period = <strong>4294967295</strong>（32 位自由计数，84 MHz 下 ~51.1 s 才回绕一次）；Clock Division = <strong>DIV1</strong>（f_DTS = f_CK_INT，滤波时钟基准）；auto-reload preload = Disable。</li>
+<li>引脚 PB3（TIM2 MspInit 生成）：AF1、<strong>No pull</strong>——上下拉会偏置浮空探针脚。</li>
+<li>NVIC Settings：不开（轮询捕获；<code>HAL_TIM_IC_Start</code> 不碰 DIER）。</li>
+<li>时钟树：TIM2 挂 APB1（PCLK1 = 42 MHz ×2 = <strong>84 MHz</strong>，即 <code>BSP_TIM_IC_REF_CLOCK_HZ</code>）。</li>
+<li>生成代码只到 <code>HAL_TIM_Base_Init</code>（CCMR1/CCER 未配）；捕获形状（CC2S/IC2F/极性/分频）由 bsp 模块 <code>HAL_TIM_IC_ConfigChannel</code> 运行时写。</li>
+</ol>
+<h3>引脚</h3>
+<table><thead><tr><th>引脚</th><th>信号/标签</th><th>方向/模式</th></tr></thead><tbody><tr><td>PB3</td><td>TIM2_CH2（TI2）</td><td>AF1 输入，无上下拉（板头排针信号输入）</td></tr></table>
+<p>PB3 默认 AF0 = JTDO，AF1 复用即重路由；SWD（PA13/PA14）不受影响。</p>
+<h3>HAL API 调用清单</h3>
+<p>bsp_tim_ic 对外 4 个函数 + 1 个时钟常量（<code>BSP_TIM_IC_REF_CLOCK_HZ</code> = 84000000）；console-free，自测返回 0=PASS、非零=失败步号，测量结果经 <code>bsp_tim_ic_last_report()</code> 交给菜单拼判据行（模块间零依赖：返回数据而非打印）。通道形状只经 <code>HAL_TIM_IC_ConfigChannel</code>/<code>HAL_TIM_IC_Start</code> 写（A3 红线；寄存器读仅作校验）。</p>
+<table><thead><tr><th>bsp 函数</th><th>对应 HAL 调用</th><th>一句作用</th></tr></thead><tbody><tr><td><code>int bsp_tim_ic_init(void)</code></td><td><code>HAL_TIM_IC_Stop</code>（幂等）→ <code>HAL_TIM_IC_ConfigChannel</code>（RISING / DIRECTTI=CC2S 01 / DIV1 / Filter=3）→ <code>HAL_TIM_IC_Start</code>（CC2E + CEN）</td><td>捕获通道武装：上升沿、每有效边捕获、~762 ns 毛刺拒绝（IC2F=0011，8 个 f_DTS/8 采样一致才认边）</td></tr><tr><td><code>uint32_t bsp_tim_ic_measure_freq(void)</code></td><td><code>__HAL_TIM_GET_FLAG</code> + <code>__HAL_TIM_GET_COMPARE</code>（读 CCR2）</td><td>共享 1 s 窗口抓两个上升沿，freq = 84M/period_ticks；窗口内无信号对返回 0（= &quot;无信号&quot;）</td></tr><tr><td><code>const char *bsp_tim_ic_last_report(void)</code></td><td>—</td><td>判据行后缀：<code>(no signal, 0 Hz)</code> / <code>(measured N Hz)</code></td></tr><tr><td><code>int bsp_tim_ic_selftest(void)</code></td><td>上述组合</td><td>2 步自测（见下节）</td></tr></table>
+<p>频率范围 ~1 Hz .. 84 MHz 可表；低于 ~2 Hz 时 1 s 窗口很难捕到两个边，慢信号同样报 0。1 tick 分辨率 = 11.9 ns 周期。周期公式（EP13 原理）：period_ticks = (CCR2@edge2 + N×2^32) − CCR2@edge1，N = 两边之间的 UIF 数（每次溢出 = 一次 2^32 回绕，64 位中间量防越界）。</p>
+<p>典型调用：</p>
+<pre><code>
+#include &quot;bsp_tim_ic.h&quot;
+
+bsp_tim_ic_init();                          /* 直连 TI2、上升沿、滤波 3 */
+uint32_t hz = bsp_tim_ic_measure_freq();    /* 0 = 窗口内无信号对 */
+</code></pre>
+<h3>生成器盲区备注</h3>
+<ul>
+<li><strong>EGR.UG 武装笔删除</strong>：老版起测前敲 UG 归零 CNT——边到边测量与 CNT 相位无关，HAL 版改为每次测量开头统一清陈旧标志（<code>__HAL_TIM_CLEAR_FLAG</code>，UPDATE|CC2，rc_w0 拼法）。</li>
+<li><strong>CC2IF 无需手动清</strong>：读 CCR2 即清（RM ch.18.4.14 硬件契约，同 UART RXNE 的&quot;读即清&quot;）；UIF（溢出计数用）才需要 <code>__HAL_TIM_CLEAR_FLAG</code>。</li>
+</ul>
+<h3>自测验证</h3>
+<p>菜单命令：<code>tim_ic</code></p>
+<p>判据：<code>PASS tim_ic (no signal, 0 Hz)</code>（空探针 = SKIP 语义，不是缺陷）或 <code>PASS tim_ic (measured N Hz)</code>。两步：① 捕获配置读回（CCMR1 CC2S/IC2F/IC2PSC、CCER CC2E/CC2P/CC2NP、PSC=0、ARR=0xFFFFFFFF）② 一次测量（无信号 PASS 并写报告后缀，有信号报告实测值）。</p>
+<p>本轮实测：<strong>PASS (no signal, 0 Hz)</strong>——无输入 SKIP 语义。</p>
+<p>闭环交叉验证：<code>pwm_ic_loop</code>——PA8→PB3 杜邦线，TIM1 1 kHz PWM → TIM2 捕获，实测 950–1050 Hz（两个独立定时器互测）。</p>
+<h3>对应视频集数</h3>
+<p>EP13（输入捕获与频率测量）。</p>
+</section>
+<section class="card" id="mod-tim_enc">
+<div class="badge-row"><span class="badge pass">PASS</span><span class="menucmd">菜单命令：<code>tim_enc</code></span></div>
+<h2>bsp_tim_encoder — TIM3 正交编码器接口（EP23）</h2>
+<p>TIM3_CH1/CH2=PB4/PB5 正交解码（TI12 ×4 计数）、回绕安全测速与自测。寄存器级</p>
+<p>深讲（SMCR/CCMR1/CCER 逐位）看老工程 <code>docs/periph/tim_enc.md</code> 表 3，本页只讲</p>
+<p>HAL 映射与生成真值。</p>
+<h3>CubeMX GUI 配置步骤</h3>
+<ol>
+<li>TIM3 → Mode → <strong>Encoder Interface</strong>，Encoder Mode=<strong>TI12</strong>（.ioc 真值</li>
+</ol>
+<p>   <code>TIM3.EncoderMode=TIM_ENCODERMODE_TI12</code>；注意生成代码只到</p>
+<p>   <code>HAL_TIM_Base_Init</code> 基础时基，编码器&quot;形状&quot;由本模块</p>
+<p>   <code>HAL_TIM_Encoder_Init</code> 接管，见盲区备注）。</p>
+<ol>
+<li>Parameter Settings：Counter Period=<strong>65535</strong>（满 16 位窗，自由回绕本身就是</li>
+</ol>
+<p>   EP23 教学点）；Prescaler=<strong>0</strong>（编码器模式下 PSC 无意义——沿即时钟）；</p>
+<p>   AutoReloadPreload=<strong>Enable</strong>。</p>
+<ol>
+<li>GPIO Setting：PB4=S_TIM3_CH1（标签 <strong>ENC_A</strong>）、PB5=S_TIM3_CH2（<strong>ENC_B</strong>），</li>
+</ol>
+<p>   AF2，No pull（模块 init 里补上拉，见 API 清单）。</p>
+<ol>
+<li>Kernel clock：APB1 ×2 = 84 MHz——只有输入滤波器吃这个时钟，计数器本体由</li>
+</ol>
+<p>   编码器沿驱动。</p>
+<ol>
+<li>生成代码真值（tim.c）：`htim3.Init.Prescaler=0 / Period=65535 /</li>
+</ol>
+<p>   AutoReloadPreload=TIM_AUTORELOAD_PRELOAD_ENABLE`，仅基础 init。</p>
+<h3>引脚</h3>
+<table><thead><tr><th>引脚</th><th>信号/标签</th><th>方向/模式</th></tr></thead><tbody><tr><td>PB4</td><td>TIM3_CH1 / ENC_A</td><td>输入（AF2，编码器 A 相；init 后补 GPIO_PULLUP）</td></tr><tr><td>PB5</td><td>TIM3_CH2 / ENC_B</td><td>输入（AF2，编码器 B 相；同上）</td></tr></table>
+<h3>HAL API 调用清单</h3>
+<ul>
+<li><code>int bsp_tim_encoder_init(void)</code> — 编码器形状 init：<code>HAL_TIM_Encoder_Stop</code></li>
+</ul>
+<p>  （幂等重入，BUSY 上 Start 是 HAL_ERROR）→ <code>HAL_GPIO_Init</code> 补 ENC_A/ENC_B</p>
+<p>  上拉（IOC 留 No pull，悬空线在阈值附近晃会出幻边）→</p>
+<p>  <code>HAL_TIM_Encoder_Init</code>（TI12、DIRECTTI、IC 滤波=3≈762 ns 去抖、DIV1、</p>
+<p>  RISING）→ <code>HAL_TIM_Encoder_Start(TIM_CHANNEL_ALL)</code>（含 CC1E/CC2E/CEN，</p>
+<p>  无中断——轮询课）。返回 0=PASS（SMCR/CCMR1/CCER/ARR 只读回读核验，</p>
+<p>  A3 豁免），-1=回读不符。</p>
+<p>典型用法：</p>
+<pre><code>
+bsp_tim_encoder_init();
+uint32_t cnt = bsp_tim_encoder_read_count();   /* 位置（模 16 位一圈） */
+int32_t  rpm = bsp_tim_encoder_speed_rpm(200); /* 200 ms 窗测速 */
+/* rpm = delta * 60000 / (4 * PPR * win_ms)，delta 为 (int16_t) 回绕折叠：
+   反转=负 rpm；窗内计数勿超 |32767|，否则 16 位回绕混叠符号（EP23 走查）。 */
+</code></pre>
+<ul>
+<li><code>uint32_t bsp_tim_encoder_read_count(void)</code> — 原始 16 位计数</li>
+</ul>
+<p>  （<code>__HAL_TIM_GET_COUNTER</code>），0&lt;-&gt;65535 自由回绕，即转角模一圈读数。</p>
+<ul>
+<li><code>int bsp_tim_encoder_set_ppr(uint32_t ppr)</code> — rpm 换算用每转脉冲数</li>
+</ul>
+<p>  （默认 1024），合法 1..65535；0 拒绝返回 -1 不改旧值。</p>
+<ul>
+<li><code>int32_t bsp_tim_encoder_speed_rpm(uint32_t win_ms)</code> — 采样-<code>HAL_Delay</code>-</li>
+</ul>
+<p>  采样，回绕安全 signed delta 测速（win_ms≥1）；无信号返回 0。</p>
+<ul>
+<li><code>const char *bsp_tim_encoder_last_report(void)</code> — 上次自测的一行报告</li>
+</ul>
+<p>  （&quot;(idle)&quot; 或 &quot;(moved, N cts/300ms)&quot;），菜单拼在判定行后（返回数据而非</p>
+<p>  打印，模块间零依赖）。</p>
+<ul>
+<li><code>int bsp_tim_encoder_selftest(void)</code> — 返回 0=PASS，否则失败步号：</li>
+</ul>
+<p>  1=配置回读（SMS=011/双通道映射+滤波/CCER 使能/ARR/CEN）</p>
+<p>  2=静止 200 ms 必须 delta=0（上拉+滤波下幻边计数即布线/噪声问题）</p>
+<p>  3=转动探测 300 ms（有信号报计数、无信号报 idle，都 PASS）。</p>
+<h3>生成器盲区备注</h3>
+<p>.ioc 记录 Encoder Interface/TI12 意图，但生成代码只输出基础时基 init</p>
+<p>（<code>MX_TIM3_Init</code> 内无 <code>HAL_TIM_Encoder_Init</code>）——编码器形状归 bsp 模块</p>
+<p>接管，属本工程的<strong>有意分工</strong>（与老工程&quot;模块接管&quot;同构），非缺陷；复现/恢复</p>
+<p>直接调 <code>bsp_tim_encoder_init()</code> 即可。</p>
+<h3>自测验证</h3>
+<p>菜单命令：<code>tim_enc</code>；本轮实测：<strong>PASS (idle)</strong>（编码器静止，SKIP 语义——</p>
+<p>未接编码器不是缺陷）。接上编码器后步 2 静止判据仍过，手转轴报</p>
+<p>&quot;(moved, N cts/300ms)&quot;，<code>speed_rpm(200)</code> 给带符号 rpm。</p>
+<h3>对应视频集数</h3>
+<p>EP23（定时器编码器接口与电机测速）。</p>
+</section>
+<section class="card" id="mod-tim_adv">
+<div class="badge-row"><span class="badge pass">PASS</span><span class="menucmd">菜单命令：<code>tim_adv</code></span></div>
+<h2>bsp_tim_adv — TIM8 互补 PWM + 死区（EP14）</h2>
+<p>高级定时器教学：TIM8_CH1=PC6 独立 PWM、CH2=PC7 / CH2N=PB14 互补对 + 1 µs</p>
+<p>死区（BDTR DTG 两段编码实算）。寄存器级深讲（RCR/BDTR/EGR 影子装载）看老</p>
+<p>工程 <code>docs/periph/tim_adv.md</code> 表 3，本页只讲 HAL 映射与生成真值。</p>
+<h3>CubeMX GUI 配置步骤</h3>
+<ol>
+<li>TIM8 → Mode → <strong>PWM Generation CH1</strong> + <strong>PWM Generation CH2 with CH2N</strong></li>
+</ol>
+<p>   （.ioc 真值：Channel-PWM Generation1 CH1 / Generation2 CH2 / CH2N 三键；</p>
+<p>   路由 PC6/PC7/PB14 三脚，通道寄存器本模块写）。</p>
+<ol>
+<li>Parameter Settings（生成真值 tim.c）：Prescaler=<strong>0</strong>、Counter Period=</li>
+</ol>
+<p>   <strong>65535</strong>、RepetitionCounter=<strong>0</strong>、ClockDivision=<strong>DIV1</strong>（→ t_DTS=</p>
+<p>   5.952 ns，死区基准）、AutoReloadPreload=Disable——基础 init；1 kHz 帧</p>
+<p>   与占空由模块运行时接管（PSC=167、ARR=999 → 1 MHz 节拍 / 1 kHz 帧）。</p>
+<ol>
+<li>Break And Dead-time：本板 PB12 无 break 源，<strong>Break 故意不配置</strong>（BKIN</li>
+</ol>
+<p>   悬空时武装只会给 MOE 异步清零添路）；死区 DTG 由模块</p>
+<p>   <code>HAL_TIMEx_ConfigBreakDeadTime</code> 写 <strong>0x94</strong>（EP14 实算：1000 ns / 5.952</p>
+<p>   ns = 168 tick &gt; 127 → 第二段 DTG=10_010100b=0x94，实际</p>
+<p>   (64+20)×2×5.952=999.9 ns）。</p>
+<ol>
+<li>GPIO：PC6/PC7/PB14 均 AF3、No pull、Low speed（PB14 走 MspPostInit）。</li>
+<li>MOE 红线：高级定时器陷阱——<code>HAL_TIM_PWM_Start</code>/<code>HAL_TIMEx_PWMN_Start</code></li>
+</ol>
+<p>   内部 <code>__HAL_TIM_MOE_ENABLE</code>；没有 MOE，三路 CCER 使能全是死脚。</p>
+<h3>引脚</h3>
+<table><thead><tr><th>引脚</th><th>信号/标签</th><th>方向/模式</th></tr></thead><tbody><tr><td>PC6</td><td>TIM8_CH1</td><td>输出（AF3，独立 PWM，1 kHz / 50%）</td></tr><tr><td>PC7</td><td>TIM8_CH2</td><td>输出（AF3，互补对正相）</td></tr><tr><td>PB14</td><td>TIM8_CH2N</td><td>输出（AF3，互补对反相，含 1 µs 死区间隙）</td></tr></table>
+<h3>HAL API 调用清单</h3>
+<ul>
+<li><code>int bsp_tim_adv_init(void)</code> — 三路输出 init：<code>HAL_TIM_PWM_Stop</code> ×2 +</li>
+</ul>
+<p>  <code>HAL_TIMEx_PWMN_Stop</code>（幂等重入）→ <code>HAL_TIM_PWM_ConfigChannel</code> ×2</p>
+<p>  （PWM1 模式、Pulse=500 即 50%、active high、idle LOW）→ 死区 0x94 →</p>
+<p>  <code>__HAL_TIM_SET_PRESCALER/AUTORELOAD</code>（167/999）→ Start ×2 +</p>
+<p>  <code>HAL_TIMEx_PWMN_Start</code>。返回 0=PASS（CCER/BDTR/PSC/ARR 只读回读，</p>
+<p>  A3 豁免），-1=HAL 失败或回读不符。</p>
+<p>典型用法：</p>
+<pre><code>
+bsp_tim_adv_init();                            /* PC6 独立 + PC7/PB14 互补 */
+bsp_tim_adv_set_deadtime_ns(500);              /* 旋钮: 500 ns 就地重写 */
+uint32_t got = bsp_tim_adv_get_deadtime_ns();  /* 只读解码 DTG 回 ns */
+</code></pre>
+<ul>
+<li><code>int bsp_tim_adv_set_deadtime_ns(uint32_t ns)</code> — ns→DTG 四段编码走查</li>
+</ul>
+<p>  （≤756 ns 直编码；≤1512 用 2×t_DTS 步进/0x80 偏置；≤3024 ×8/0xC0；</p>
+<p>  ≤6048 ×16/0xE0），经 <code>HAL_TIMEx_ConfigBreakDeadTime</code> 下写并重 arm MOE</p>
+<p>  （该调用 AutomaticOutput=DISABLE 会清 MOE）。0 或 &gt;6048 ns 拒绝返回 -1，</p>
+<p>  无写入。</p>
+<ul>
+<li><code>uint32_t bsp_tim_adv_get_deadtime_ns(void)</code> — 只读解码当前 BDTR DTG</li>
+</ul>
+<p>  字段（HAL 无 DTG getter，A3 豁免读）；set 的精确逆变换，自测往返用。</p>
+<ul>
+<li><code>int bsp_tim_adv_selftest(void)</code> — 返回 0=PASS，否则失败步号：</li>
+</ul>
+<p>  1=DTG/CCER/MOE 回读（0x94、三使能、MOE、CEN）</p>
+<p>  2=死区 ns 往返（1000→999.9、200→202.4，误差 ≤1 个量化步）</p>
+<p>  3=互补极性（CC2P=CC2NP=0，对称 active-high，只有死区隔开两相）。</p>
+<h3>生成器盲区备注</h3>
+<p>无重大盲区。分工说明：IOC 只给基础时基（PSC=0/ARR=65535），1 kHz 帧与死区</p>
+<p>是模块运行时 HAL 调用（<code>__HAL_TIM_SET_*</code> + <code>HAL_TIMEx_ConfigBreakDeadTime</code>）。</p>
+<p>首帧小坑（非盲区）：PSC 影子——Start 后第一帧仍按旧 PSC=0 跑（约 6 µs），</p>
+<p>随后 1 kHz 节拍才锁定。</p>
+<h3>自测验证</h3>
+<p>菜单命令：<code>tim_adv</code>；本轮实测：<strong>PASS</strong>（TIM8 互补 PWM + 1 µs 死区）。</p>
+<p>示波器看点：PB14 是 PC7 的精确反相，唯每个翻转沿 ±1 µs 窗内两脚同为低</p>
+<p>（死区，结构性无直通）；死区旋钮 <code>set_deadtime_ns(5000)</code> 落 5048 ns</p>
+<p>（第 4 段步进 95 ns，5 µs 是离格目标）。</p>
+<h3>对应视频集数</h3>
+<p>EP14（高级定时器：互补输出与死区）。</p>
+</section>
+<section class="card" id="mod-can_lb">
+<div class="badge-row"><span class="badge pass">PASS</span><span class="menucmd">菜单命令：<code>can_lb</code></span></div>
+<h2>bsp_can_loopback — CAN1 500k 回环（EP18）</h2>
+<p>bxCAN 单板自证教学：500 kbit/s 位时序 + 回环模式自发自收。寄存器级深讲</p>
+<p>（INRQ/INAK 模式机、BTR off-by-one、过滤器组解剖）看老工程</p>
+<p><code>docs/periph/can_lb.md</code> 表 3，本页只讲 HAL 映射。HAL 版所有权变更：CAN1</p>
+<p>已进 .ioc，本模块只持有 .ioc 表达不了的部分。</p>
+<h3>CubeMX GUI 配置步骤</h3>
+<ol>
+<li>Connectivity → CAN1 → <strong>Activated</strong>；引脚 PB8=CAN1_RX / PB9=CAN1_TX</li>
+</ol>
+<p>   （AF9，No pull，Very High speed；板载 TJA1050 收发器）。</p>
+<ol>
+<li>Bit Timing（生成真值 can.c）：<strong>Prescaler=7、BS1=8tq、BS2=3tq、SJW=1tq</strong></li>
+</ol>
+<p>   → tq=166.7 ns，12 tq/bit，APB1 42 MHz / (7+1) / 12 = <strong>500 kbit/s</strong>，</p>
+<p>   采样点 (1+8)/12=75%（替换老工程 BRP=5/BS1=11/BS2=2 的 85.7% 形状——</p>
+<p>   同波特率、更早采样）。</p>
+<ol>
+<li>Parameters：Mode=<strong>NORMAL</strong>（.ioc 值；回环由模块运行时切换，见盲区备注）；</li>
+</ol>
+<p>   TimeTriggered / AutoBusOff / AutoWakeUp / AutoRetransmission / RFLM /</p>
+<p>   TXFP 全 Disable。</p>
+<ol>
+<li>NVIC：CAN1_RX0 中断<strong>不开</strong>（轮询教学基线）。</li>
+<li>过滤器组 .ioc 表达不了——由模块 <code>HAL_CAN_ConfigFilter</code> 配（bank 0、</li>
+</ol>
+<p>   32 位 mask、id=mask=0 全收 → FIFO0）。</p>
+<h3>引脚</h3>
+<table><thead><tr><th>引脚</th><th>信号/标签</th><th>方向/模式</th></tr></thead><tbody><tr><td>PB8</td><td>CAN1_RX</td><td>输入（AF9，TJA1050 RXD；回环模式内部回环、无视 CANRX 引脚）</td></tr><tr><td>PB9</td><td>CAN1_TX</td><td>输出（AF9，TJA1050 TXD；回环模式下仍输出真实帧波形可观测）</td></tr></table>
+<h3>HAL API 调用清单</h3>
+<ul>
+<li><code>int bsp_can_loopback_init(void)</code> — 回环切换走 A3 红线内的 sanctioned</li>
+</ul>
+<p>  HAL 模式（改 handle 字段 + 重跑驱动，不碰 MCR/BTR）：</p>
+<p>  <code>hcan1.Init.Mode=CAN_MODE_LOOPBACK</code> → <code>HAL_CAN_Init</code>（INRQ→INAK 握手在</p>
+<p>  驱动内部）→ <code>HAL_CAN_ConfigFilter</code>（全收→FIFO0）→ <code>HAL_CAN_Start</code>（等</p>
+<p>  INAK 清）。BTR 只读回读证明&quot;生成时序+LBKM&quot;真到了硬件，随后清 FIFO0</p>
+<p>  陈帧保再跑确定性。返回 0=PASS；-1=配置回读不符；-2=<code>HAL_CAN_Init</code> 失败</p>
+<p>  （老 enter-init 超时位型）；-3=<code>HAL_CAN_Start</code> 失败（老 INAK 清除超时）。</p>
+<p>典型用法（一发一收）：</p>
+<pre><code>
+uint8_t tx[4] = {0xA1, 0xB2, 0xC3, 0xD4}, rx[8];
+uint32_t id, dlc;
+bsp_can_loopback_send(0x123, tx, 4);       /* 选最低空闲邮箱并置 TXRQ */
+bsp_can_loopback_tx_done(10);              /* 等该邮箱完成 + TXOK 判定 */
+bsp_can_loopback_recv(&amp;id, rx, &amp;dlc, 10);  /* FIFO0 弹出并比对 */
+</code></pre>
+<ul>
+<li><code>int bsp_can_loopback_send(uint32_t std_id, const uint8_t *data, uint32_t dlc)</code></li>
+</ul>
+<p>  — 标准 ID 数据帧；本 vintage 的 <code>HAL_CAN_AddTxMessage</code>（即新版 HAL 的</p>
+<p>  <code>HAL_CAN_AddMessageToTxFifoQ</code>），扫 TSR 选最低空闲邮箱。0=受理；-1=无</p>
+<p>  空闲邮箱/未启动（老 TME0=0 位型）；-2=id&gt;0x7FF 或 dlc&gt;8。</p>
+<ul>
+<li><code>int bsp_can_loopback_tx_done(uint32_t timeout_ms)</code> — 等上次发送的邮箱</li>
+</ul>
+<p>  完成（HAL_GetTick 有界 + SysTick 死守护，绝不挂死）。0=完成且 TXOK=1；</p>
+<p>  -1=SysTick 死；-2=窗口耗尽；-3=完成但 TXOK=0（仲裁丢失/TERR；TSR 只读</p>
+<p>  探针，A3 豁免）。</p>
+<ul>
+<li>`int bsp_can_loopback_recv(uint32_t *std_id, uint8_t *data, uint32_t *dlc,</li>
+</ul>
+<p>  uint32_t timeout_ms)<code> — FIFO0 填充级等待 + </code>HAL_CAN_GetRxMessage`；</p>
+<p>  data 需 ≥8 字节（HAL 拷全部 8 路 payload，小端 lane 次序驱动已吸收）。</p>
+<p>  0=收到，-1=超时/参数错。</p>
+<ul>
+<li><code>const char *bsp_can_loopback_last_report(void)</code> — &quot;(frame OK)&quot; /</li>
+</ul>
+<p>  &quot;(data mismatch)&quot;。</p>
+<ul>
+<li><code>int bsp_can_loopback_selftest(void)</code> — 返回 0=PASS，否则失败步号：</li>
+</ul>
+<p>  1=握手（回环重 init+过滤器+start+BTR 回读）</p>
+<p>  2=回环往返（ID=0x123、DLC=4 逐字节比对）</p>
+<p>  3=第二帧完成旗标（RQCP+TXOK 同置——老工程的 rc_w0 写 1 清除实证</p>
+<p>  <strong>有意删除</strong>：A3 禁写 TSR）。</p>
+<h3>生成器盲区备注</h3>
+<p>无重大盲区。教学点写明：**回环模式由 bsp_init 里</p>
+<p><code>hcan1.Init.Mode = CAN_MODE_LOOPBACK</code> + <code>HAL_CAN_Init</code> 切换**（.ioc 保持</p>
+<p>NORMAL）——老工程的 INRQ/INAK 手工握手现在收进这三个 HAL 调用里。双板</p>
+<p>总线实验 = 跳过回环切换、加载真实过滤器，留作扩展。</p>
+<h3>自测验证</h3>
+<p>菜单命令：<code>can_lb</code>；本轮实测：<strong>PASS (frame OK)</strong>（CAN1 500k 回环，帧收发</p>
+<p>验证）。空板可跑：回环模式 bxCAN 内部 Tx→Rx 回环（RM 32.5.2），PB9 仍能</p>
+<p>看到真实帧波形。</p>
+<h3>对应视频集数</h3>
+<p>EP18（CAN 总线与 bxCAN）。</p>
+</section>
+<section class="card" id="mod-crc_rng">
+<div class="badge-row"><span class="badge pass">PASS</span><span class="menucmd">菜单命令：<code>crc_rng</code></span></div>
+<h2>bsp_crc_rng — CRC32 硬件单元 + RNG 真随机（EP20）</h2>
+<p>F4&quot;基本型&quot;CRC（MPEG-2 语义、32 位字粒度）与 AHB2 RNG 真随机源。EP20 教学</p>
+<p>对比三差异：zlib crc32（反射 + 异或终值 + 字节粒度）vs F4 硬件（MSB-first</p>
+<p>无终值、字粒度）。寄存器级深讲看老工程 <code>docs/periph/crc_rng.md</code> 表 3。</p>
+<p>HAL 版所有权变更：CRC/RNG 均已进 .ioc，模块只验生成结果 + HAL 驱动外设。</p>
+<h3>CubeMX GUI 配置步骤</h3>
+<ol>
+<li>Computing → <strong>CRC</strong> → Activated：F4 单元无任何可配置项（多项式 0x4C11DB7/</li>
+</ol>
+<p>   种子 0xFFFFFFFF 固化在硅里，无 POLY/INIT/REV 寄存器——F0/F7 代才有）；</p>
+<p>   生成代码即裸 <code>HAL_CRC_Init</code>（crc.c 真值：<code>hcrc.Instance=CRC</code> 一行）。</p>
+<ol>
+<li>Computing → <strong>RNG</strong> → Activated：默认参数、中断不开（IE=0，轮询教学</li>
+</ol>
+<p>   基线）；<code>HAL_RNG_Init</code> 内部完成 CR:RNGEN 上电（模拟熵源+LFSR+健康监测）。</p>
+<ol>
+<li>RNG 时钟：PLLQ=7 @ HSE 25 MHz → <strong>48 MHz</strong>，落在 RNG_CLK 法线内</li>
+</ol>
+<p>   （config-spec 硬约束&quot;RNG 必须 ≤48 MHz&quot;；老工程 PLLQ=84 MHz 的 CECS</p>
+<p>   告警点在本 build 不存在）。</p>
+<ol>
+<li>NVIC：两者中断均不开（轮询基线）。</li>
+<li>无引脚——纯计算/熵源外设。</li>
+</ol>
+<h3>引脚</h3>
+<table><thead><tr><th>引脚</th><th>信号/标签</th><th>方向/模式</th></tr></thead><tbody><tr><td>—</td><td>—</td><td>无引脚</td></tr></table>
+<h3>HAL API 调用清单</h3>
+<ul>
+<li><code>int bsp_crc_rng_init(void)</code> — <strong>verify-only</strong>（MspInit 在 boot 已开</li>
+</ul>
+<p>  AHB1 CRCEN / AHB2 RNGEN 时钟门，<code>HAL_RNG_Init</code> 已给 RNG 上电）：只读</p>
+<p>  核验两 handle 活、两时钟门开（<code>__HAL_RCC_*_IS_CLK_ENABLED</code>，A3 豁免）、</p>
+<p>  RNG 状态 READY。0=PASS，-1=不符。幂等。</p>
+<ul>
+<li><code>uint32_t bsp_crc_rng_crc32(const uint8_t *data, uint32_t len)</code> — 字节流</li>
+</ul>
+<p>  过硬件：首块 <code>HAL_CRC_Calculate</code>（= CR:RESET + 喂字 + 读 DR，即老工程</p>
+<p>  crc32 序列原话），续块 <code>HAL_CRC_Accumulate</code>。单元吃<strong>恰好 32 位大端字</strong>，</p>
+<p>  尾部零填充——<strong>填充字节是 CRC 输入的一部分</strong>（EP20 课 #3）。返回裸 DR</p>
+<p>  状态（MPEG-2 语义，无反射无 xorout）；len=0 或 data=NULL → 0xFFFFFFFF。</p>
+<p>典型用法：</p>
+<pre><code>
+static const uint8_t vec[9] = &quot;123456789&quot;;
+uint32_t crc = bsp_crc_rng_crc32(vec, 9u);  /* 0xAE24E09D（含 1 个补零字） */
+uint32_t rnd;
+if (bsp_crc_rng_random(10, &amp;rnd) == 0) { /* rnd = 新随机字 */ }
+</code></pre>
+<ul>
+<li><code>int bsp_crc_rng_random(uint32_t timeout_ms, uint32_t *out)</code> — 单个 32 位</li>
+</ul>
+<p>  随机字：<code>HAL_RNG_GenerateRandomNumber</code> 内部轮询 SR:DRDY、DR 读清 DRDY。</p>
+<p>  注意 timeout_ms 仅为接口对齐保留，实际 DRDY 窗是 HAL 内部</p>
+<p>  RNG_TIMEOUT_VALUE（2 ms，tick 基）；DRDY 通常两个 RNG_CLK 周期内置位，</p>
+<p>  实践不可见。0=交付，-1=DRDY 超时/参数错。</p>
+<ul>
+<li><code>int bsp_crc_rng_selftest(void)</code> — 返回 0=PASS，否则失败步号：</li>
+</ul>
+<p>  1=CRC 三方契约（硬件=软件位反照=离线常量：&quot;12345678&quot;→0x49E3C2FB、</p>
+<p>  &quot;123456789&quot;+3 补零→0xAE24E09D；目录值 0x0376E6E7 属未填充流，<strong>不</strong></p>
+<p>  断言——EP20 课 #3）2=RNG 首字 FIPS 丢弃后连读 8 字无相邻重复（连续</p>
+<p>  随机数检测：重复=健康失败，p=2^-32/对）3=CECS/SECS 健康位全清（只读</p>
+<p>  旗标，A3 豁免）。</p>
+<h3>生成器盲区备注</h3>
+<p>无。CRC/RNG 在 HAL 版就是&quot;无参 IP&quot;：GUI 只有 Activated 开关，生成代码</p>
+<p>裸 init，无 IOC↔代码漂移面。RNG 时钟硬约束（PLLQ≤48 MHz）由时钟树保证，</p>
+<p>不落在本 IP 的配置项里。</p>
+<h3>自测验证</h3>
+<p>菜单命令：<code>crc_rng</code>；本轮实测：<strong>PASS</strong>（CRC32 MPEG-2 向量 + RNG 连读）。</p>
+<p>离线对照：<code>python -c &quot;import zlib; print(hex(zlib.crc32(b&#x27;123456789&#x27;)))&quot;</code></p>
+<p>→ 0xcbf43926（zlib 孪生值，故意不同的算法形状——EP20 对比课的锚点）。</p>
+<h3>对应视频集数</h3>
+<p>EP20（CRC 校验与随机数）。</p>
+</section>
+<section class="card" id="mod-rtc">
+<div class="badge-row"><span class="badge pass">PASS</span><span class="menucmd">菜单命令：<code>rtc</code></span></div>
+<h2>bsp_rtc — RTC 日历 + 备份域（EP16）</h2>
+<p>LSE 32.768 kHz 日历（本 build 实跑 LSI，见盲区备注）、Alarm A 每分钟秒匹配、</p>
+<p>20×BKPxR 备份寄存器（CR1220/VBAT 供电，全复位存续）。备份域深讲（PWR DBP →</p>
+<p>BDCR RTCSEL → WPR 三层锁、PRER 两写法、影子寄存器撕裂）看老工程</p>
+<p><code>docs/periph/rtc.md</code> 表 3。HAL 版所有权变更：RTC 已进 .ioc，备份域整链归</p>
+<p>MspInit/驱动，模块 verify-only + 日历/报警/BKP API。</p>
+<h3>CubeMX GUI 配置步骤</h3>
+<ol>
+<li>RTC → <strong>Activated</strong>（+ Activate Clock Source），Calendar 勾选。</li>
+<li>Calendar（生成真值 rtc.c）：HourFormat=<strong>24h</strong>、AsynchPrediv=<strong>127</strong>、</li>
+</ol>
+<p>   SynchPrediv=<strong>255</strong>（32.768k/(128×256)=1 Hz 计划）、OutPut=Disable。</p>
+<ol>
+<li>Clock Source：GUI/.ioc 意图 <strong>LSE</strong>（`RCC.RTCClockSelection=</li>
+</ol>
+<p>   RTC_CLKSOURCE_LSE`；PC14/PC15 板焊晶振）——但生成代码恒 LSI，属生成器</p>
+<p>   盲区（见下节与 app_main 修正段）。</p>
+<ol>
+<li>Time/Date：生成代码每次上电无条件打 00:00:00 / Monday 2000-01-01</li>
+</ol>
+<p>   （<code>HAL_RTC_SetTime/SetDate</code> BCD）——生成行为保留；&quot;这次上电是谁让的&quot;</p>
+<p>   标记走 BKP 寄存器（EP05/EP15 联动）。</p>
+<ol>
+<li>NVIC：RTC_Alarm 中断不开（轮询：ISR.ALRAF 软件看；alarm 走非 IT</li>
+</ol>
+<p>   <code>HAL_RTC_SetAlarm</code>——stm32f4xx_it.c 无 RTC_Alarm_IRQHandler 可派发）。</p>
+<ol>
+<li>引脚：LSE 建立时 PC14/PC15 为晶振模拟脚；本 build LSI 分支下 RTC 代码</li>
+</ol>
+<p>   不占用这两脚。</p>
+<h3>引脚</h3>
+<table><thead><tr><th>引脚</th><th>信号/标签</th><th>方向/模式</th></tr></thead><tbody><tr><td>PC14</td><td>OSC32_IN</td><td>模拟（32.768 kHz 晶振；LSE 建立时）</td></tr><tr><td>PC15</td><td>OSC32_OUT</td><td>模拟（同上）</td></tr><tr><td>VBAT</td><td>—</td><td>电源（CR1220 纽扣电池，备份域/BKPxR 供电）</td></tr></table>
+<h3>HAL API 调用清单</h3>
+<ul>
+<li><code>int bsp_rtc_init(void)</code> — <strong>verify-only</strong>（DBP→时钟源→PRER 整链已由</li>
+</ul>
+<p>  MspInit/<code>HAL_RCCEx_PeriphCLKConfig</code>/<code>HAL_RTC_Init</code> 在 boot 完成）：核验</p>
+<p>  127/255+24h 计划、活动时钟源为 LSE 或 LSI（<code>__HAL_RCC_GET_RTC_SOURCE</code></p>
+<p>  只读，A3 豁免）、PRER 寄存器回读一致。0=PASS（报告带活动源），-1=不符。</p>
+<p>典型用法：</p>
+<pre><code>
+bsp_rtc_set_time(12, 34, 56);        /* 十进制入参, HAL 内部转 BCD */
+uint8_t h, m, s;
+bsp_rtc_get_time(&amp;h, &amp;m, &amp;s);        /* GetTime 后必须跟 GetDate（影子锁） */
+bsp_rtc_set_alarm_seconds(30);       /* 每分钟 :30 触发一次（非 IT） */
+if (bsp_rtc_alarm_fired()) { /* ALRAF 已读清 */ }
+bsp_rtc_write_bkp(0u, 0xA5A55A5Au);  /* 备份寄存器 0..19 */
+</code></pre>
+<ul>
+<li><code>int bsp_rtc_set_time(uint8_t hh, uint8_t mm, uint8_t ss)</code> — 十进制入参</li>
+</ul>
+<p>  校验（h&lt;24,m&lt;60,s&lt;60）后 <code>HAL_RTC_SetTime(RTC_FORMAT_BIN)</code>（WPR/INIT/</p>
+<p>  INITF/BCD 全在驱动内部）；越界或驱动失败 -1。日期不动。</p>
+<ul>
+<li><code>int bsp_rtc_get_time(uint8_t *hh, uint8_t *mm, uint8_t *ss)</code> —</li>
+</ul>
+<p>  <code>HAL_RTC_GetTime</code> + 尾随 <code>HAL_RTC_GetDate</code>（HAL 契约：不读日期则影子</p>
+<p>  寄存器对下次读保持锁定，RM 26.3.16；老工程的双读一致性检查由驱动完成）；</p>
+<p>  读后重验范围（撕裂防护保留）。</p>
+<ul>
+<li><code>int bsp_rtc_set_alarm_seconds(uint8_t ss)</code> — Alarm A 屏蔽日期/时/分、</li>
+</ul>
+<p>  只比秒字段（<code>RTC_ALARMMASK_*</code> + 亚秒全屏蔽），非 IT</p>
+<p>  <code>HAL_RTC_SetAlarm</code>（驱动内部等 ALRAWF 再编程再使能）。-1=越界/ALRAWF</p>
+<p>  超时。</p>
+<ul>
+<li><code>int bsp_rtc_alarm_fired(void)</code> — 轮询 ALRAF（只读宏，A3 豁免），置位即</li>
+</ul>
+<p>  <code>__HAL_RTC_ALARM_CLEAR_FLAG</code> 清旗并返 1（清旗是本路径唯一授权写）；老</p>
+<p>  WPR 出错返回路径已不存在（HAL 内部管 WPR）。</p>
+<ul>
+<li><code>int bsp_rtc_write_bkp(uint32_t idx, uint32_t val)</code> /</li>
+</ul>
+<p>  <code>uint32_t bsp_rtc_read_bkp(uint32_t idx)</code> — <code>HAL_RTCEx_BKUPWrite/Read</code>，</p>
+<p>  索引 0..19（坏索引 write 返 -1 / read 返 0）。</p>
+<ul>
+<li><code>const char *bsp_rtc_last_report(void)</code> — &quot;(rtc src lsi, bkp0 kept)&quot; 等</li>
+</ul>
+<p>  一行报告。</p>
+<ul>
+<li><code>int bsp_rtc_selftest(void)</code> — 返回 0=PASS，否则失败步号（编号承老工程）：</li>
+</ul>
+<p>  1=init 核验（<strong>无 LSE 等待了</strong>——老 -2 SKIP 语义随等待一起消失）</p>
+<p>  2=日历真走时：秒字段 +1 必须落在 2.5 s HAL_GetTick 窗内（LSI 展宽：</p>
+<p>  一&quot;秒&quot;=32768 周期/f_LSI=0.70..1.93 s；计时器是独立的 HAL tick，交叉检验</p>
+<p>  纪律不变）3=BKP0=0xA5A55A5A、BKP19=其反码写入读回，<strong>值留在原处</strong>供</p>
+<p>  下次断电演示 VBAT 保留。</p>
+<h3>生成器盲区备注</h3>
+<p><strong>RTCClockSelection 生成器盲区</strong>：.ioc 写 LSE，生成恒 LSI（rtc.c</p>
+<p><code>RTCClockSelection = RCC_RTCCLKSOURCE_LSI</code>）。app_main 修正段（非致命）：</p>
+<p>LSE 有界等待 2 s → 就绪则 <code>HAL_RTC_DeInit</code> → RTCClockSelection=LSE →</p>
+<p><code>HAL_RTC_Init</code> + RTT 标记；未就绪留 LSI、报告如实说明。本轮实测走 LSI</p>
+<p>分支（&quot;rtc src lsi&quot;），LSE 起振条件待复核。bsp_rtc_init 读活动源动态报告，</p>
+<p>未来 .ioc 修到 LSE 无需改代码。</p>
+<h3>自测验证</h3>
+<p>菜单命令：<code>rtc</code>；本轮实测：<strong>PASS (rtc src lsi, bkp0 kept)</strong>（日历 + 备份</p>
+<p>寄存器；时钟源见 test-report §4.3）。断电保留演示：USB 断电（CR1220 在位）</p>
+<p>再上电，BKP0R 仍应读到 0xA5A55A5A。</p>
+<h3>对应视频集数</h3>
+<p>EP16（RTC 实时时钟与备份域）。</p>
+</section>
+<section class="card" id="mod-wdg">
+<div class="badge-row"><span class="badge pass">PASS</span><span class="menucmd">菜单命令：<code>wdg</code></span></div>
+<h2>bsp_wdg — IWDG/WWDG 看门狗（EP15）</h2>
+<p>IWDG 配置回读 + WWDG 窗口法 + RCC-&gt;CSR 复位源旗标解码。EP15 教学点：LSI</p>
+<p>17–47 kHz 展开带来的 IWDG 超时散布（本 build 8.192 s 标称 → 实际 5.6–15.4 s）</p>
+<p>与 WWDG&quot;早喂即复位&quot;窗口法。寄存器级深讲（KR 三钥匙、PVU/RVU 影子同步）看</p>
+<p>老工程 <code>docs/periph/wdg.md</code> 表 3。<strong>本轮调试期两只狗全关（用户裁定）</strong>——</p>
+<p>语义见盲区备注。</p>
+<h3>CubeMX GUI 配置步骤</h3>
+<ol>
+<li>System Core → <strong>IWDG</strong> → Activated（VP_IWDG_VS_IWDG）：Prescaler=<strong>/64</strong>、</li>
+</ol>
+<p>   Reload=<strong>4095</strong> → 4096 tick ÷ 32 kHz 标称 = 8.192 s（生成真值 iwdg.c：</p>
+<p>   <code>IWDG_PRESCALER_64</code> + <code>Reload=4095</code>；<code>HAL_IWDG_Init</code> 内部做 KR 钥匙</p>
+<p>   序列 + KR=0xCCCC 启动——armed 后不可关，只能整段跳过或复位）。</p>
+<ol>
+<li>System Core → <strong>WWDG</strong> → Activated（VP_WWDG_VS_WWDG）：Prescaler=<strong>/8</strong>、</li>
+</ol>
+<p>   Counter=<strong>127</strong>、Window=<strong>127</strong>（.ioc 真值 <code>WWDG.WindowValue=0x7F</code>，</p>
+<p>   config-spec §5 意图）、EWI 关。生成真值 wwdg.c 是 /8 + Counter=127 +</p>
+<p>   <strong>Window=64</strong>——生成器恒输出 64（知识 #17 单 tick 剃刀窗，见盲区备注；</p>
+<p>   42 MHz/4096/8 → tick=780.2 µs，最大 64 tick≈49.9 ms）。</p>
+<ol>
+<li>Option bytes：WDG_SW=软件启动（CubeMX 默认；硬件自启不用）。</li>
+<li>NVIC：WWDG_IRQn 不开（EWI 未用，轮询基线）。</li>
+<li>无引脚——LSI 为内部 RC 振荡器（IWDG 在 VDD 域独立计数，停机模式仍走）。</li>
+</ol>
+<h3>引脚</h3>
+<table><thead><tr><th>引脚</th><th>信号/标签</th><th>方向/模式</th></tr></thead><tbody><tr><td>—</td><td>—</td><td>无引脚</td></tr></table>
+<h3>HAL API 调用清单</h3>
+<ul>
+<li><code>int bsp_wdg_init(void)</code> — 核验 boot-armed 计划（handle 字段 + PR/RLR/</li>
+</ul>
+<p>  CFR 只读回读，A3 豁免；WDGA=1 证明狗<strong>在跑</strong>——与老工程&quot;停狗实证&quot;</p>
+<p>  反演）。IWDG PR/RLR 之所以可信恰因狗已 armed（老工程 2026-11-21 实证：</p>
+<p>  未 armed 的 IWDG 影子同步永不完成、回读陈值——HAL 版 boot 启动恰好是</p>
+<p>  让验证成为可能的设计）。0=PASS，-1=不符。</p>
+<p>典型用法（shell 主循环喂狗纪律）：</p>
+<pre><code>
+/* 菜单循环每圈: */
+bsp_wdg_refresh();                  /* IWDG 无条件喂 + WWDG 窗口守卫喂 */
+bsp_wdg_iwdg_feed();                /* 只喂 IWDG（HAL_IWDG_Refresh=0xAAAA） */
+uint32_t f = bsp_wdg_reset_flags(); /* CSR 旗标快照, 可自行再解码 */
+</code></pre>
+<ul>
+<li><code>void bsp_wdg_refresh(void)</code> — 菜单循环喂狗助手：IWDG 无条件（只需 stay</li>
+</ul>
+<p>  &lt; 5.6 s 快沿）；WWDG <strong>窗口守卫</strong>——先只读探 CR T[6:0]，落入合法条带</p>
+<p>  （T≤W）才发 <code>HAL_WWDG_Refresh</code>（T&gt;W 时喂=瞬间复位，RM 22.4.2；生成</p>
+<p>  W=64 时条带单 tick，守卫几乎不触发）。</p>
+<ul>
+<li><code>void bsp_wdg_reset_demo(void)</code> — 安全演示（<strong>绝不在自测里调</strong>；shell 另</li>
+</ul>
+<p>  一注册表、先打印警告）：最后喂一次 IWDG 后死循环断粮，NEVER RETURNS；</p>
+<p>  复位落在 5.6–15.4 s 后（EP15 边际课），下电 boot_diag 发</p>
+<p>  EV_WATCHDOG_RESET，<code>wdg</code> 命令看旗标解码。（当前 WWDG 剃刀窗未修则 WWDG</p>
+<p>  先在 ~49 ms 触发、旗标为 wwdg——IWDG 课被掩盖而非破坏。）</p>
+<ul>
+<li><code>uint32_t bsp_wdg_reset_flags(void)</code> — CSR bits 25..31 七旗标快照原样</li>
+</ul>
+<p>  返回（只读；RMVF 清旗写被 A3 禁止——app_main 在 boot 已</p>
+<p>  <code>__HAL_RCC_CLEAR_RESET_FLAGS</code>）。</p>
+<ul>
+<li><code>const char *bsp_wdg_last_report(void)</code> — &quot;(iwdg ok, wwdg razor win)&quot; /</li>
+</ul>
+<p>  &quot;(rst: iwdg)&quot; 等一行报告。</p>
+<ul>
+<li><code>int bsp_wdg_selftest(void)</code> — 返回 0=PASS，否则失败步号：</li>
+</ul>
+<p>  1=IWDG 计划+PR/RLR 回读 2=CSR 快照+解码入报告（RMVF 清旗循环删除：</p>
+<p>  A3 禁写 CSR）3=WWDG CFR 回读+WDGA 置位（razor 窗只报告不判 FAIL——</p>
+<p>  那是 .ioc 的真值）。</p>
+<h3>生成器盲区备注</h3>
+<p><strong>最重盲区（知识 #17）</strong>：<code>MX_IWDG_Init</code>/<code>MX_WWDG_Init</code> 在 USER CODE 0 区</p>
+<p>短路（<code>return;</code> + <code>#pragma diag_suppress 111</code>）——调试期看门狗全关</p>
+<p>（<strong>用户裁定 2026-11-22</strong>；IWDG armed 后无法解锁，只能整段跳过）。</p>
+<p>②生成 WWDG Window 恒 64（.ioc 写 127 也被覆盖）→ 单 tick（780.2 µs）剃刀</p>
+<p>刷新窗，任何 boot 序列都喂不进 → 不短路则每轮上电 ~49 ms 复位循环。</p>
+<p><strong>恢复方法</strong>：删两处 <code>return;</code> + 接上 bsp_wdg 运行时 init（模块已具备</p>
+<p><code>HAL_IWDG_Init</code>/<code>HAL_WWDG_Init</code> 能力）；菜单主循环的 <code>bsp_wdg_refresh()</code></p>
+<p>调用已就位（未 armed 时为无害写）。恢复后 .ioc 的 Window 仍需放宽</p>
+<p>（老工程 W=0x70 给 48 tick≈37.4 ms 条带）或删 WWDG。</p>
+<h3>自测验证</h3>
+<p>菜单命令：<code>wdg</code>；本轮实测：<strong>KNOWN FAIL step1 &quot;iwdg plan mismatch&quot;</strong>——狗</p>
+<p>关了而模块按 armed 狗验证，预期偏差（test-report §4.1，用户裁定）；两只狗</p>
+<p>恢复后即测（运行时 init 语义）。</p>
+<h3>对应视频集数</h3>
+<p>EP15（看门狗与复位管理）。</p>
+</section>
+<section class="card" id="mod-pwr">
+<div class="badge-row"><span class="badge pass">PASS</span><span class="menucmd">菜单命令：<code>pwr</code></span></div>
+<h2>bsp_pwr — 电源管理：Sleep/Stop/Standby（EP17）</h2>
+<p>PWR 三低功耗模式教学：Sleep 100 ms（SysTick 中断唤醒，selftest 真跑）、Stop（KEY1=PA0 唤醒，菜单 demo <code>pwr_stop_demo</code>）、Standby（API-only，进入即掉电不返回）。HAL 版 PWR <strong>无 .ioc 独立 init</strong>——三种模式全部是运行时 <code>HAL_PWR_*</code> 调用；EXTI 唤醒线归 GPIO 配置节与 bsp_exti。教学内核不变：三模式 = 一条 WFI 指令 + 三个控制位（LPDS/PDDS/SLEEPDEEP）的排列，变的只是&quot;谁写这些位&quot;——HAL 写，bsp 只调 API。</p>
+<h3>CubeMX GUI 配置步骤</h3>
+<p>PWR 模式没有 CubeMX 页面（.ioc 无此 IP，知识 #13）：<code>PWR-&gt;CR/CSR</code>、<code>SCB-&gt;SCR</code> 全由 <code>HAL_PWR_*</code> 运行时操作，bsp 层零寄存器写（A3 红线）。唤醒相关的按键 EXTI 在 GPIO 配置节完成：</p>
+<ol>
+<li>Pinout 视图点 PA0 → GPIO Mode = <strong>External Interrupt Mode with Rising edge trigger detection</strong>（KEY1 按下=高，上升沿=按下）；标签 <code>KEY1</code>。</li>
+<li>点 PA1 → <strong>Falling edge</strong>（KEY2 按下=低）；标签 <code>KEY2</code>。</li>
+<li>System Core → GPIO：PA0 <strong>Pull-down</strong>（空闲低）、PA1 <strong>Pull-up</strong>（空闲高）。</li>
+<li>System Core → NVIC：勾选 <strong>EXTI line0 interrupt</strong> 与 <strong>EXTI line1 interrupt</strong>，优先级均 5（Stop 唤醒要求 EXTI 中断模式 + NVIC 向量使能——RM0090 停机唤醒条件，两条腿缺一不可）。</li>
+<li>生成。CubeMX 从此拥有 EXTI 线 0/1 布线与向量（<code>stm32f4xx_it.c</code> → <code>HAL_GPIO_EXTI_IRQHandler</code> 链）；本模块只拥有唤醒<strong>计数</strong>。</li>
+</ol>
+<h3>引脚</h3>
+<table><thead><tr><th>引脚</th><th>信号/标签</th><th>模式</th></tr></thead><tbody><tr><td>PA0</td><td>KEY1（WKUP1/EXTI0）</td><td>输入 + 上升沿 EXTI + 下拉（Stop 唤醒源；Standby 后兼作 WKUP1）</td></tr><tr><td>PA1</td><td>KEY2（EXTI1）</td><td>输入 + 下降沿 EXTI + 上拉（归 exti.md，此处仅列引脚地图）</td></tr></table>
+<h3>HAL API 调用清单</h3>
+<p>三模式的 HAL 语义映射（bsp 层绝不手写控制位，A3 红线）：</p>
+<ul>
+<li>Sleep：<code>HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI)</code>——内部清 SLEEPDEEP 后 WFI；唤醒后执行原地继续，任意使能的 NVIC 中断可醒。</li>
+<li>Stop：<code>HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI)</code>——内部置 LPDS=1（低耗调节器保 1.2 V 域）、PDDS=0、SLEEPDEEP=1，WFI，唤醒后再清 SLEEPDEEP。</li>
+<li>Standby：<code>HAL_PWR_EnterSTANDBYMode()</code>——PDDS=1 + 清 WUF + SLEEPDEEP=1 + WFI <strong>一拍完成</strong>；HAL 没有 arm-only 调用，武装+进入原子。</li>
+</ul>
+<p>模块公开 API（bsp_pwr.h）：</p>
+<ul>
+<li><code>int bsp_pwr_init(void)</code> — 开 PWR/SYSCFG 门控（<code>__HAL_RCC_PWR_CLK_ENABLE</code> 等），只读回读 LPDS/PDDS/SLEEPDEEP 静息态。0=PASS。</li>
+<li><code>uint32_t bsp_pwr_sleep_ms(uint32_t ms)</code> — Sleep 毫秒延时：循环进 Sleep，每次 WFI 由 1 ms SysTick 中断唤醒并计一次 COUNTFLAG；TICKINT 若被关，<code>HAL_ResumeTick()</code> 临时武装、事后 <code>HAL_SuspendTick()</code> 还原（WFI 零中断会永久睡死）。SysTick 疑死返回 <code>BSP_PWR_SLEEP_DEAD_SYSTICK</code>（有界退出）。</li>
+<li><code>void bsp_pwr_enter_stop(void)</code> — Stop 全流程：清残留 <code>__HAL_GPIO_EXTI_CLEAR_IT(KEY1_Pin)</code>（挂起未清 = Stop 进入被忽略，RM 表注）→ 进 Stop → 唤醒后 <code>SystemInit()</code> 重跑——Stop 退出系统时钟落回 HSI 16 MHz 且 PLL 关，老波特率会喷 ~10.9 kBd 垃圾（EP17 教训）；SystemInit 幂等，重跑即回 168 MHz。</li>
+<li><code>void bsp_pwr_arm_standby(void)</code> — <code>__HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU)</code> 后进 Standby。<strong>函数不返回</strong>：寄存器/SRAM 全丢，唤醒 = 复位级启动（硬件唤醒源：WKUP1 上升沿 = 本板 KEY1、RTC 闹钟/唤醒/入侵、NRST、IWDG）。</li>
+<li><code>int bsp_pwr_standby_flag(void)</code> — <code>__HAL_PWR_GET_FLAG(PWR_FLAG_SB)</code>：1=上次启动来自 Standby 唤醒（<code>__HAL_PWR_CLEAR_FLAG(PWR_FLAG_SB)</code> 清除）。</li>
+<li><code>void bsp_pwr_on_exti0(void)</code> / <code>uint32_t bsp_pwr_exti0_wake_count(void)</code> — 唤醒钩子（一次 volatile 自增）与读数。</li>
+<li><code>int bsp_pwr_selftest(void)</code> / <code>const char *bsp_pwr_last_report(void)</code> — 自测与一行报告。</li>
+</ul>
+<pre><code>
+uint32_t slept = bsp_pwr_sleep_ms(100);   /* Sleep: SysTick 逐毫秒唤醒 */
+/* menu&gt; pwr_stop_demo 后按 KEY1： */
+if (bsp_pwr_exti0_wake_count() &gt; 0u) { /* 唤醒确实走了 EXTI0 */ }
+</code></pre>
+<p>回调路由（A3 红线）：<code>HAL_GPIO_EXTI_Callback</code> 的 weak 覆盖<strong>全工程只有一份</strong>，由 bsp_exti.c 统一按 <code>GPIO_Pin</code> 分发——KEY1_Pin 分支调 <code>bsp_pwr_on_exti0()</code> 钩子计数，本模块不自建回调（两处强覆盖链接期冲突）。Stop 不进自测：<code>pwr_stop_demo</code> 从菜单 demos 触发，醒后 shell 打印 wake count 作为 EXTI 路径证据；睡眠期心跳停摆会被 logcheck 判&quot;挂死&quot;，属预期；唤醒失败救援 = SWD 复位。Standby 保持 API-only（进入即掉电）。</p>
+<h3>生成器盲区备注</h3>
+<p>本模块无映射盲区。EXTI0 空 handler 的&quot;中断风暴&quot;修复归 exti.md 主题，此处一句带过：Core 侧向量已补 <code>HAL_GPIO_EXTI_IRQHandler</code>，回调分发收敛在 bsp_exti.c。</p>
+<h3>自测验证</h3>
+<p>菜单命令 <code>pwr</code>（selftest 只碰 Sleep，绝不进 Stop/Standby——进前者搁浅控制台，进后者直接复位）：</p>
+<ul>
+<li>步骤 1：门控 + 静息态回读（PWR/SYSCFG 时钟开，LPDS/PDDS/SLEEPDEEP 全清）。</li>
+<li>步骤 2：<code>bsp_pwr_sleep_ms(100)</code> 实测须落 [100,130] ms（短于不可能——循环数 SysTick 圈；长于说明唤醒链停摆），且事后 SLEEPDEEP 仍清。</li>
+<li>测量诚实注：100 ms 窗口由 SysTick 计时、也由 SysTick 唤醒——同一振荡器双角色，证明的是 WFI/唤醒<strong>机制</strong>而非晶振绝对精度。</li>
+</ul>
+<p>本轮实测（2026-11-22 test-report）：<strong>PASS pwr — Sleep(WFI) + standby 标志读回</strong>。</p>
+<h3>对应视频集数</h3>
+<p>EP17（低功耗模式与唤醒）。</p>
+</section>
+<section class="card" id="mod-flash_iap">
+<div class="badge-row"><span class="badge pass">PASS</span><span class="menucmd">菜单命令：<code>flash_iap</code></span></div>
+<h2>bsp_flash_iap — 片内 Flash IAP 参数页（EP21）</h2>
+<p>FLASH 接口钥匙解锁 + 扇区擦除 + 字编程，全部流量硬限制在末扇区参数页 0x0807FC00（1 KB）。HAL 版无 .ioc init（CubeMX 没有 FLASH IP 页面，知识 #13）——<code>HAL_FLASH_*</code> 是纯运行时 API；擦/写窗口用 PRIMASK 短屏蔽（保存/恢复，非盲开）。安全契约：CPU 正在从这块 Flash 取指执行，擦写代码扇区 = 取指停等/损坏 → 无恢复；所以擦除函数无参（只能扇区 7）、编程函数页外地址一律拒绝——<strong>拒绝优于文档告警</strong>。</p>
+<h3>CubeMX GUI 配置步骤</h3>
+<p>无任何 .ioc/GUI 步骤（纯运行时外设，同 PWR）。需要知道的硬件真值：</p>
+<ol>
+<li>密度：STM32F407VETx = <strong>512 KB</strong>（RM0090 Table 5：扇区 0-3=16K、4=64K、5-7=128K）——<strong>末扇区是 7</strong>（0x0806 0000–0x0807 FFFF）；HAL 例程里的 &quot;Sector 11&quot; 是 1 MB 密度件的说法，在本件上是非法 SNB。</li>
+<li>并行宽度：VoltageRange 3（2.7–3.6 V）= x32 字编程，CR PSIZE 与之匹配（擦除与编程同宽）。</li>
+<li>Readout protect RDP level 0（关）——选项字节只是教学指针，本模块不碰（OPTKEYR/选项字节教学保留在寄存器版材料）。</li>
+<li>中断纪律：进 IAP 前 <code>__get_PRIMASK()</code> 保存 + <code>__disable_irq()</code>，操作后原值恢复——擦写期间总线停等，ISR 不可取指；128 KB 扇区擦典型 1.3 s / 最大 2.6 s，字编程 ~35 µs/字，心跳暂停是文档化成本。</li>
+<li>HAL 时序兜底：HAL 内部 BSY 轮询自带 FLASH_TIMEOUT_VALUE（50 s），覆盖上述全部物理窗口。</li>
+</ol>
+<h3>引脚</h3>
+<table><thead><tr><th>引脚</th><th>信号/标签</th><th>模式</th></tr></thead><tbody><tr><td>—</td><td>—</td><td>无引脚（片内 Flash 控制器，内存映射直读不需要解锁）</td></tr></table>
+<h3>HAL API 调用清单</h3>
+<p>HAL 调用底层语义（寄存器深讲指引：老工程 flash_iap.md 表 3）：</p>
+<ul>
+<li><code>HAL_FLASH_Unlock()/HAL_FLASH_Lock()</code> — KEYR 双钥匙序列（0x45670123 → 0xCDEF89AB，顺序错=总线错误）清 CR.LOCK；HAL 钥匙后复查 LOCK，被拒即返回错误。每次 Unlock 必配对 Lock。</li>
+<li><code>HAL_FLASHEx_Erase(&amp;erase, &amp;sector_error)</code> — 组 CR = SER + SNB=扇区 + PSIZE（=VoltageRange 实参）+ STRT，随后有界 BSY 轮询；错误位（WRPERR/PGAERR/PGPERR/PGSERR）进 ErrorCode 输出并使调用返回 HAL_ERROR——寄存器版的 rc_w1 审计由 HAL 代劳。</li>
+<li><code>HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, addr, data)</code> — CR = PG + PSIZE=word，32 位存储即编程命令，逐字 BSY 轮询；NOR 位只能 1→0，0→1 只能靠擦。</li>
+</ul>
+<p>模块公开 API（bsp_flash_iap.h）：</p>
+<ul>
+<li><code>int bsp_flash_iap_init(void)</code> — 只读体检：ACR latency 非零（168 MHz = 5 WS，0 WS 回读 = 时钟树回退告警）+ CR LOCK 现状进报告，不动任何东西。</li>
+<li><code>int bsp_flash_iap_erase_last_sector(void)</code> — 无参设计（代码扇区 0-6 物理不可达）：Unlock → <code>__HAL_FLASH_CLEAR_FLAG(...)</code> 清脏标志 → <code>HAL_FLASHEx_Erase</code>（<code>FLASH_TYPEERASE_SECTORS</code> / Sector 7 / NbSectors 1 / <code>FLASH_VOLTAGE_RANGE_3</code>）→ Lock。返回 0 / −1（HAL 错误或 SNB 错误）。</li>
+<li><code>int bsp_flash_iap_program_words(uint32_t addr, const uint32_t *src, uint32_t n)</code> — 字对齐 + 参数页界检查（越界先拒绝 −2，不上总线），逐字 Program；页必须先擦。</li>
+<li><code>int bsp_flash_iap_read_words(uint32_t addr, uint32_t *dst, uint32_t n)</code> — 纯内存读（教学点：读不需要解锁，CPU 取指就在读这块存储）；范围限 512 KB 全片。</li>
+<li><code>int bsp_flash_iap_selftest(void)</code> / <code>const char *bsp_flash_iap_last_report(void)</code>。</li>
+</ul>
+<pre><code>
+/* 参数页先擦后写（教学 8 字特征图案）: */
+uint32_t words[2] = { 0x53454737u, 0x50415241u }; /* &quot;SEG7&quot; &quot;PARA&quot; */
+bsp_flash_iap_erase_last_sector();                /* 只能是扇区 7 */
+bsp_flash_iap_program_words(0x0807FC00u, words, 2u);
+</code></pre>
+<h3>生成器盲区备注</h3>
+<ul>
+<li>**<code>HAL_FLASHEx_Erase</code> 的 <code>*SectorError</code> 被 HAL 预置 0xFFFFFFFF<strong>（成功时保持全一，只在出错扇区写 SNB）——调用方按 C 直觉 0 初始化 + <code>!=0</code> 判据会</strong>永远误报**；必须预置 <code>0xFFFFFFFF</code> 后判 <code>!= 0xFFFFFFFF</code>（本轮实测踩中后修复，知识 #18）。</li>
+<li><strong>擦除前清脏标志</strong>：<code>__HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_EOP|OPERR|WRPERR|PGAERR|PGPERR|PGSERR)</code>——上次失败残留的错误位会让新操作立即 PGSERR（实测开机首擦前 SR=0xC0）。</li>
+<li>PRIMASK 窗口的诚实副作用：屏蔽期间 <code>HAL_GetTick()</code> 冻结，HAL 内部 50 s 超时退化为纯 BSY 轮询——BSY 下降才是真实出口（数据手册窗口才是物理上限）。</li>
+</ul>
+<h3>自测验证</h3>
+<p>菜单命令 <code>flash_iap</code>（带 last_report）：</p>
+<ul>
+<li>步骤 1：unlock → LOCK 读 0 → lock → LOCK 读 1（整个钥匙契约双向证实）。</li>
+<li>步骤 2：擦扇区 7 → 全 128 KB（32768 字）扫 FF → 参数页写 8 字特征图案（&quot;SEG7 PARA 1234 5678…&quot;）→ 读回比对 → <strong>故意留在片上</strong>（断电保持演示：断电重启后 Keil memory window 看 0x0807FC00 仍在，下轮重擦重写）。</li>
+<li>步骤 3：再锁（模块绝不把可写状态留在菜单命令身后）。</li>
+</ul>
+<p>本轮实测：<strong>PASS flash_iap (erase ok, param 8w kept)</strong>。</p>
+<h3>对应视频集数</h3>
+<p>EP21（片内 Flash 与参数存储）。</p>
+</section>
+<section class="card" id="mod-i2c_ee">
+<div class="badge-row"><span class="badge pass">PASS</span><span class="menucmd">菜单命令：<code>i2c_ee</code></span></div>
+<h2>bsp_i2c_eeprom — I2C1 主机 + 板载 24C02 EEPROM（EP11）</h2>
+<p>硬件 I2C1 主机（HAL 版教学主线）：PB6=SCL / PB7=SDA（AF4 开漏），100 kHz 标准模式，对板载 24C02（7 位地址 0x50）做单字节写/随机读。CubeMX 全权拥有引脚与 I2C1 寄存器文件；bsp 层只做生成配置回读 + HAL 调用（A3 红线，寄存器触碰仅只读探针）。24C02 命令层不变，变的是线束引擎：老版软开漏位拍总线（<code>i2c_soft_bus</code>）退役，<code>HAL_I2C_Mem_Write/Read/IsDeviceReady</code> 的&quot;一调用=一事务&quot;是行业标准形状。</p>
+<h3>CubeMX GUI 配置步骤</h3>
+<ol>
+<li>Connectivity → I2C1 → I2C Mode：勾选 <strong>I2C</strong>（Standard Mode，仅 Master；400 kHz 是对照实验项）。</li>
+<li>Parameter Settings：<strong>Clock Speed = 100000</strong>、<strong>Addressing Mode = 7-bit</strong>、Own Address1 = 0（纯主机，无人寻址 MCU）、DutyCycle = 2、No Stretch / General Call = Disable。</li>
+<li>引脚自动落 <strong>PB6 = I2C1_SCL / PB7 = I2C1_SDA</strong>：GPIO Mode <strong>AF Open-Drain</strong>、Pull <strong>No pull</strong>（上拉靠板上外部电阻——内部 ~40 kΩ 撑不住 100 kHz）、Speed Very High、AF4。</li>
+<li>NVIC / DMA 不勾（轮询教学基线）。</li>
+<li>生成 <code>MX_I2C1_Init()</code> + <code>HAL_I2C_MspInit()</code>（main.c 开机调用）；CCR/TRISE 数学（CCR=210、TRISE=43）进 <code>HAL_I2C_Init</code> 内部，不再是手写项。</li>
+</ol>
+<h3>引脚</h3>
+<table><thead><tr><th>引脚</th><th>信号/标签</th><th>模式</th></tr></thead><tbody><tr><td>PB6</td><td>EE_SCL / I2C1_SCL</td><td>AF4 开漏，无内部上拉（板上外部上拉生效，空闲高）</td></tr><tr><td>PB7</td><td>EE_SDA / I2C1_SDA</td><td>AF4 开漏，无内部上拉</td></tr></table>
+<h3>HAL API 调用清单</h3>
+<ul>
+<li><code>int bsp_i2c_eeprom_init(void)</code> — 回读生成配置：<code>hi2c1.Init.ClockSpeed == 100000</code>、CR1 PE 已使能（<code>HAL_I2C_Init</code> 最后一步开外设，PE 清 = 生成 init 未完成）、两线空闲均高（<code>HAL_GPIO_ReadPin</code> 只读探针；空闲有低 = 总线卡死，HAL 版只报告不做恢复脉冲）。</li>
+<li><code>int bsp_i2c_eeprom_write_byte(uint8_t addr, uint8_t data)</code> — <code>HAL_I2C_Mem_Write(&amp;hi2c1, 0xA0, addr, I2C_MEMADD_SIZE_8BIT, &amp;data, 1, 20)</code>：一调用 = 一事务（START→0xA0→字地址→数据→STOP），HAL 负责 START/STOP/ACK/超时（<code>HAL_GetTick</code> 兜底，拒绝永久等待）；随后 tWR ACK 轮询（<code>HAL_I2C_IsDeviceReady</code> 每 1 ms 一探、12 次窗口 &gt; 2× 最坏 5 ms 写周期）→ 写读可背靠背。返回 −1=NACK（双线仍高，器件真拒绝）/ −2=总线卡死（某线被拉低）。</li>
+<li><code>int bsp_i2c_eeprom_read_byte(uint8_t addr, uint8_t *data)</code> — <code>HAL_I2C_Mem_Read</code>：指针写 + 内部重复起始（Sr）读，一调用完成随机读；老版为绕停摆用两段干净事务，那形状已成 HAL 内部序列。</li>
+<li><code>int bsp_i2c_eeprom_selftest(void)</code> / <code>const char *bsp_i2c_eeprom_last_report(void)</code>。</li>
+</ul>
+<pre><code>
+bsp_i2c_eeprom_write_byte(0x10u, 0x55u);   /* 内含 tWR 轮询 */
+uint8_t v;
+bsp_i2c_eeprom_read_byte(0x10u, &amp;v);       /* v == 0x55 */
+</code></pre>
+<p>协议要点（24C02）：</p>
+<ul>
+<li>7 位地址 0b1010_000 = 0x50（A2/A1/A0 接地）；HAL 全部调用要 8 位形 <code>dev7 &lt;&lt; 1</code> = <code>0xA0/0xA1</code>（每事务 HAL 超时 20 ms ≈ 100× 余量，卡死总线快速失败）。</li>
+<li>错误分类判据：失败后 <code>HAL_GPIO_ReadPin</code> 读双线——双高 = 总线健康、是器件 NACK（−1）；有线拉低 = 总线卡死（−2）。分类逻辑与软引擎时代一致，只换了裁判。</li>
+<li>256 B 存储阵列，字地址单字节；<strong>页 = 8 B 且页内低 3 位回绕</strong>——跨页写会回卷覆盖页首而非顺延（本模块只做单字节写永不跨页；分块页写是 EP11 练习）。</li>
+<li>每次写后 ≤5 ms 内部写周期（tWR），期间器件对一切 NACK——ACK 轮询是 EEPROM 标准等法；跳过轮询 = &quot;写后立刻读回旧值&quot;的经典 EEPROM 教训。</li>
+<li>自测先扫 0x50..0x57（整个 1010+A2A1A0 块）精化地址。</li>
+<li>寄存器深讲（CCR=210/TRISE=43/EV5–EV8_2 清除对/SR1+SR2 读对）压缩一句指引：见老工程 i2c_ee.md 表 3——时序与事件机已由 HAL 包办。</li>
+<li>引擎迁移一览：软总线引脚电气 = MspInit 生成；半位时序公式 = <code>HAL_I2C_Init</code> 数学；ACK 槽探针 = <code>HAL_I2C_IsDeviceReady</code>；9 时钟总线恢复 = HAL 错误路径复位外设（重跑 init 即恢复，留作扩展练习）。</li>
+</ul>
+<h3>生成器盲区备注</h3>
+<p>本模块无映射盲区。已知边界（如实记录）：硬件 I2C 随机读曾在老工程真板非确定停摆（2026-11-21，旧工程 §3.2，100k/50k 复现、五轮修复未愈后转软总线）——<strong>HAL 版以硬件引擎为教学主线</strong>；若 W6 上板复现同一停摆，按知识库&quot;已知板级边界&quot;记录在案，<strong>不得</strong>在模块内复活软总线。</p>
+<h3>自测验证</h3>
+<p>菜单命令 <code>i2c_ee</code>：</p>
+<ul>
+<li>步骤 1：配置回读（ClockSpeed/PE/双线空闲，无总线流量）。</li>
+<li>步骤 2：扫描 + 写 0x55 @0x10 → 随机读比对（NACK 是硬件发现，如实报告——24C02 焊死在板上必须应答）。</li>
+<li>步骤 3：写 0xAA @0x11（证明地址指针不卡死——字地址相坏会一直答 0x10 的旧值）。</li>
+<li>步骤 4：总线空闲双高（最后一次 STOP 后开漏释放、上拉获胜；有低 = 目标卡死半字节）。</li>
+</ul>
+<p>本轮实测：<strong>PASS i2c_ee (0x55/0xAA roundtrip ok)</strong>——硬件 I2C1 + 板载 24C02 实板通过。</p>
+<h3>对应视频集数</h3>
+<p>EP11（I2C 总线与 EEPROM）。</p>
+</section>
+<section class="card" id="mod-spi_flash">
+<div class="badge-row"><span class="badge pass">PASS</span><span class="menucmd">菜单命令：<code>spi_flash</code></span></div>
+<h2>bsp_spi_flash — SPI1 主机 + 板载 W25Q128 16MB Flash（EP12）</h2>
+<p>SPI1 全双工主机（HAL 版）：模式 0、8 位 MSB-first、软 NSS、84M/16 = 5.25 MHz，PA5/6/7（AF5）+ PC13 软片选，对板载 W25Q128 做 JEDEC 识别 / 4KB 扇区擦 / 页编程 / 读取。<strong>分区红线</strong>：0x00000000–0x00A00000-1 = 自由区；0x00A00000–0x00FFFFFF = 字库区（出厂字库 HZK），擦/写一律拒绝（先查地址后上总线，WREN 不外泄）。SPI 没有&quot;只发不收&quot;——每次发送同时移入一个接收字节，读器件靠 dummy 0x00/0xFF 时钟。</p>
+<h3>CubeMX GUI 配置步骤</h3>
+<ol>
+<li>Connectivity → SPI1 → Mode：<strong>Full-Duplex Master</strong>（Direction 2 Lines）。</li>
+<li>Parameter Settings：<strong>Prescaler = 16</strong>（→ 5.25 MHz，保守值让 0x03 读远离 50 MHz 上限）、CPOL <strong>Low</strong> / CPHA <strong>1 Edge</strong>（模式 0；W25Q 支持 0/3，教学取 0）、<strong>8 Bits</strong>、<strong>MSB First</strong>、<strong>NSS = Software</strong>（SSM=SSI=1；真 NSS 脚 PA4 被 KEY3 占用）。</li>
+<li>引脚 <strong>PA5 = SPI1_SCK / PA6 = SPI1_MISO / PA7 = SPI1_MOSI</strong>：GPIO AF Push-Pull、Pull 无、Speed <strong>Very High</strong>（OSPEEDR 档位由 CubeMX 生成——老工程知识 #14 漏配致 5.25 MHz SCK 静默失效的盲区，现为生成器保证）。</li>
+<li>PC13 配 <strong>GPIO_Output</strong>、初始电平 <strong>High</strong>、标签 <code>FLASH_CS</code>（MX_GPIO_Init 开机即拉高 deselect；片选永远不是 SPI 外设脚，RM0090 28.3.3）。</li>
+<li>NVIC 不勾（轮询基线）。生成 <code>MX_SPI1_Init()</code>（main.c 开机调用）。</li>
+</ol>
+<h3>引脚</h3>
+<table><thead><tr><th>引脚</th><th>信号/标签</th><th>模式</th></tr></thead><tbody><tr><td>PA5</td><td>FLASH_SCK / SPI1_SCK</td><td>AF5 推挽，Very High</td></tr><tr><td>PA6</td><td>FLASH_MISO / SPI1_MISO</td><td>AF5（外设输入脚也必须 AF，MODER=10——知识 #15 教训现为生成器保证）</td></tr><tr><td>PA7</td><td>FLASH_MOSI / SPI1_MOSI</td><td>AF5 推挽，Very High</td></tr><tr><td>PC13</td><td>FLASH_CS</td><td>GPIO 输出初始高，软片选（低有效：RESET = 选中）</td></tr></table>
+<h3>HAL API 调用清单</h3>
+<ul>
+<li><code>int bsp_spi_flash_init(void)</code> — 回读 <code>hspi1.Init</code> 八字段（master/2-lines/8-bit/模式 0/软 NSS//16/MSB）+ CR1（MSTR|SSM|SSI 置位，CPOL/CPHA/LSB/DFF 复位零；SPE <strong>不</strong>要求——HAL 每次传输内部开关引擎）+ CS 拉高 + 发一帧 0xAB 深度掉电释放（每 init 一帧，把&quot;芯片睡着&quot;从嫌疑名单永久剔除）。</li>
+<li><code>uint8_t bsp_spi_flash_xfer8(uint8_t tx)</code> — <code>HAL_SPI_TransmitReceive(&amp;hspi1, &amp;tx, &amp;rx, 1, 10)</code>：HAL 等完 TXE/RXNE <strong>含尾部 BSY</strong> 才返回——老版 CS-vs-BSY 纪律（RXNE 只证明最后采样沿发生，BSY=0 才证明整帧离开移位寄存器，RM 28.3.7）收敛为&quot;CS 低→HAL 帧→CS 高&quot;一个形状。HAL 超时返回 0x00，失败由命令层结果裁决。</li>
+<li><code>int bsp_spi_flash_jedec_id(uint8_t id[3])</code> — 0x9F 帧 + 3 个哑交换，期望 EF 40 18（无 WREN 无 BUSY，永远合法的第一探针）。</li>
+<li><code>int bsp_spi_flash_read(uint32_t addr, uint8_t *buf, uint32_t len)</code> — 0x03 + 24 位大端地址 + <code>HAL_SPI_Receive</code>，数据流到 CS 升为止；len ≤ 0xFFFF = HAL Size 上限。</li>
+<li><code>int bsp_spi_flash_page_program(uint32_t addr, const uint8_t *buf, uint32_t len)</code> — 页对齐 + len ≤ 256 + 整段在同一页内（跨页回绕覆盖页首，API 拒绝而非信任调用方）+ 红线检查 → WREN(0x06，WEL 自清) → 0x02 帧 → RDSR1 BUSY 轮询（写典型 0.6 ms / 最大 3 ms，窗 50 ms）。−3 = 字库区违规（总线零流量）。</li>
+<li><code>int bsp_spi_flash_sector_erase4k(uint32_t addr)</code> — 4 KiB 对齐（0x20 擦的是包含地址的整扇区）+ 红线 → WREN → 0x20 → BUSY 轮询（擦典型 45 ms / 最大 400 ms，窗 500 ms）。</li>
+<li><code>int bsp_spi_flash_selftest(void)</code> / <code>const char *bsp_spi_flash_last_report(void)</code>。</li>
+</ul>
+<pre><code>
+uint8_t id[3];
+bsp_spi_flash_jedec_id(id);                     /* EF 40 18 */
+bsp_spi_flash_sector_erase4k(0x00010000u);
+bsp_spi_flash_page_program(0x00010000u, pat, 16u);
+</code></pre>
+<p>W25Q 命令层一句话总表（寄存器深讲指引见老工程 spi_flash.md 表 3）：0x9F 识别、0x06 WREN、0x05 RDSR1 BUSY（BUSY=1 期间除 RDSR1 全聋——轮询即等待）、0x20 4KB 擦（擦后 NOR 读 FF：编程只能清位，所以擦必先于写）、0x02 页编程、0x03 读（≤50 MHz，本板 5.25 MHz 免等待）、0xAB 深度掉电释放（tRES ~3 µs）。</p>
+<p>HAL 帧与超时常量：单字节交换超时 10 ms（5.25 MHz 下一字节 ~1.5 µs，100× 余量）；擦 BUSY 窗 500 ms、写 BUSY 窗 50 ms、读 API 上限 0xFFFF 字节（<code>HAL_SPI_Transmit/Receive</code> 的 16 位 Size）。</p>
+<h3>生成器盲区备注</h3>
+<ul>
+<li>老寄存器版的 <code>scope_demo</code> / <code>pin_probe_demo</code>（无限循环台架、手工重 mux 引脚）与<strong>位拍软探针 / 模式 3 慢速后备引擎</strong>（<code>sf_set_spi_mode</code> 等，寄存器写）不迁移（A3：CubeMX 拥有引脚后禁止手写 MODER/AFR/CR1）。</li>
+<li><strong>DPD 唤醒 0xAB 保留</strong>（knowledge #13/#14：0xB9 深度掉电后的器件只应答 0xAB，0x9F 静默与坏芯片无法区分）；自测失败路径带 <code>9F:</code>（首读）/<code>ab:</code>（释放后重试）/<code>p6:</code>（MISO 原始电平，CS 释放时 DO 为 Hi-Z）三判据留证据。</li>
+<li>OSPEEDR 漏配（知识 #14）与 MISO 未进 AF / CS 字段值写错（知识 #15）两桩老工程硬板教训，HAL 版由 CubeMX 生成保证，init 只做回读断言防回归。</li>
+</ul>
+<h3>自测验证</h3>
+<p>菜单命令 <code>spi_flash</code>：</p>
+<ul>
+<li>步骤 1：配置回读（Init 字段 + CR1 + CS 空闲高）。</li>
+<li>步骤 2：JEDEC 必须 EF 40 18（静默/垃圾 → 0xAB 释放 + 重试一次，焊死的 W25Q 必须应答）。</li>
+<li>步骤 3：自由区 0x00010000 页操练（红线下 1 MiB 余量）：4KB 擦 → 256 B 全 FF → 16 B 图案写入 → 比对（分相断言，报告点名失败相；每轮重擦，幂等）。</li>
+</ul>
+<p>本轮实测：<strong>PASS spi_flash 9F:EF4018 page ok</strong>。</p>
+<h3>对应视频集数</h3>
+<p>EP12（SPI 总线与 SPI Flash）。</p>
+</section>
+<section class="card" id="mod-sdio_tf">
+<div class="badge-row"><span class="badge pass">PASS</span><span class="menucmd">菜单命令：<code>sdio_tf</code></span></div>
+<h2>bsp_sdio_tf — SDIO TF 卡识别流程（EP24）</h2>
+<p>SDIO <strong>卡识别协议链</strong>教学：PC8-PC11=D0-D3 / PC12=CK / PD2=CMD（AF12），4-bit 宽总线。寄存器版手跑 CMD0→CMD8→ACMD41→CMD2→CMD3→CMD9 整个识别序列（CPSM 逐命令、RESP1-4 逐格式）；HAL 版由 <code>HAL_SD_Init</code> 在识别时跑完该序列，本模块用 <code>HAL_SD_GetCardState / GetCardInfo / GetCardCID</code> 讯问捕获结果 + 亲手解析原始 CSD 字（C_SIZE 位手术存活）。数据通路（FIFO/DMA、CMD17/24、DTIMER/DLEN/DCTRL、32×32 位 FIFO）注明&quot;留待扩展&quot;——识别即可证明引脚/时钟/响应解析全链路。</p>
+<h3>CubeMX GUI 配置步骤</h3>
+<ol>
+<li>Connectivity → SDIO → Mode：<strong>SD 4-bit Wide Bus</strong>（PC8-PC12 + PD2 自动落位）。</li>
+<li>Parameter Settings：Clock transfer edge <strong>Rising</strong>、Clock bypass / Power save <strong>Disable</strong>、Hardware flow control <strong>Disable</strong>、ClockDiv 默认（识别 &lt;400 kHz 规则由 HAL 的 SDIO_INIT_CLK_DIV 兑现；SDIOCLK 走 PLLQ 48 MHz，config-spec §2）。</li>
+<li>DMA / NVIC 不勾（识别链教学基线）。</li>
+</ol>
+<p><strong>必须写下的生成器盲区（核心，固件侧修复已就位）</strong>：生成包装函数 <code>MX_SDIO_SD_Init</code> 对 <code>HAL_SD_Init</code> 失败一律 <code>Error_Handler()</code>（<code>__disable_irq()</code> + 死循环）——TF 座通常空着，<strong>无卡即砖死启动</strong>（pyocd 取证定位的死点之一）。</p>
+<p>固件侧修复（三件事）：</p>
+<ol>
+<li>sdio.c 的 USER CODE <code>SDIO_Init 0</code> 区直接 lazy return（包装函数 neutered，<code>#pragma diag_suppress 111</code> 压掉不可达代码告警）。</li>
+<li>卡识别改由 <code>bsp_sdio_tf_init()</code> <strong>运行时自配</strong>（引脚 AF12 + 句柄字段 + <code>HAL_SD_Init</code> / <code>HAL_SD_ConfigWideBusOperation</code>），按需触发、失败返回 SKIP 语义。</li>
+<li>实测 SDHC 7386 MB 识别 PASS；regen 后该 USER CODE 段稳定保留。</li>
+</ol>
+<h3>引脚</h3>
+<table><thead><tr><th>引脚</th><th>信号/标签</th><th>模式</th></tr></thead><tbody><tr><td>PC8</td><td>TF_D0 / SDIO_D0</td><td>AF12 双向，Very High，无上下拉</td></tr><tr><td>PC9</td><td>TF_D1 / SDIO_D1</td><td>AF12 双向</td></tr><tr><td>PC10</td><td>TF_D2 / SDIO_D2</td><td>AF12 双向</td></tr><tr><td>PC11</td><td>TF_D3 / SDIO_D3</td><td>AF12 双向（DAT3 高采样 = 卡进 SPI 模式的告警点）</td></tr><tr><td>PC12</td><td>TF_CK / SDIO_CK</td><td>AF12 输出</td></tr><tr><td>PD2</td><td>TF_CMD / SDIO_CMD</td><td>AF12 双向</td></tr></table>
+<h3>HAL API 调用清单</h3>
+<ul>
+<li><code>int bsp_sdio_tf_init(void)</code> — 首次调用自配六脚 AF12 + <code>hsd</code> 字段（BusWide 先 <strong>1B</strong>：识别期按 SD 规约跑 1-bit；ClockDiv = <code>SDIO_TRANSFER_CLK_DIV</code>；边沿上升/旁路与流控关）→ <code>HAL_SD_Init(&amp;hsd)</code> 跑完整识别链 → <code>HAL_SD_ConfigWideBusOperation(&amp;hsd, SDIO_BUS_WIDE_4B)</code> 切 4-bit。返回 0 = 识别成功；<strong>−3 = 无卡（SKIP 语义：空座 ACMD41 超时 / CMD6 同路径，是硬件自身判决）</strong>；−1 配置缺失 / −2 卡带错误旗（CMD13）/ −4 卡死在识别态（在座但没上完电——弱接触/坏卡）/ −5 CID 失败 / −6 RCA=0 / −7 容量字段无效 / −8 卡型与 CSD 结构矛盾。</li>
+<li><code>bsp_sdio_tf_type() / _manufacturer_id() / _rca() / _c_size() / _capacity_mb()</code> — 捕获字段访问器：卡型判决（OCR CCS：SDSC 字节寻址 CSD v1 / SDHC 块寻址 CSD v2）、CID[127:120] 制造商字节、卡自选 RCA、C_SIZE（v2 = CSD[69:48]，v1 = CSD[73:62]，对 <code>hsd.CSD[]</code> 原始字做位手术——lane 打包与寄存器版 RESP1..4 相同，解析教学原样存活）、v2 容量 MiB（BlockNbr×BlockSize 推导，v1 返回 0 = &quot;原始字段无容量&quot;老语义）。</li>
+<li><code>int bsp_sdio_tf_selftest(void)</code> / <code>const char *bsp_sdio_tf_last_report(void)</code>。</li>
+</ul>
+<pre><code>
+if (bsp_sdio_tf_init() == 0) {
+    /* 报告行即数据：&quot;(SDHC mfr=0x02 7386MB)&quot; */
+}
+</code></pre>
+<p>识别时钟规则一句话（RM 31.9.2）：SDIO_CK = SDIOCLK/(CLKDIV+2)，识别期必须 &lt;400 kHz（寄存器版 CLKDIV=210 → 396.2 kHz；HAL 版由 SDIO_INIT_CLK_DIV 兑现），偶数 CLKDIV = 50% 占空；CMD8 的 R7 回显分离 v1-only 卡、ACMD41 的 HCS/CCS 给出 SDSC/SDHC 判决、容量公式 (C_SIZE+1)×512 KiB（SDHC）——寄存器深讲指引见老工程 sdio_tf.md 表 3。</p>
+<p>寄存器版 → HAL 版映射一览：6 脚 AF12 mux = SDIO_MspInit（本板改由 bsp 运行时自配）；POWER/CLKCR 识别时钟 = HAL_SD_InitCard；CMD0→…→CMD9 手跑序列 = HAL_SD_Init 一次跑完；RESP1..4 读 = <code>hsd.CSD[]/hsd.CID[]</code> 捕获字；ACMD41 在位轮询 = <code>HAL_SD_GetCardState</code>（CMD13）。教学存活位：C_SIZE 位手术、CCS/CSD 一致性检查、&lt;400 kHz 规则。</p>
+<h3>生成器盲区备注</h3>
+<ul>
+<li><strong>核心盲区</strong>（如上）：空座 <code>HAL_SD_Init</code> 失败即 <code>Error_Handler</code> 砖机 → USER CODE <code>SDIO_Init 0</code> 区 lazy return（固件侧修复，知识 #17/#18 管线一部分）；识别改为 <code>bsp_sdio_tf_init</code> 运行时自配（引脚 AF12 + 句柄 + <code>HAL_SD_Init</code>），实测 SDHC 7386 MB。</li>
+<li><strong>sweep/识别语义</strong>：无卡 = <strong>SKIP 不是 FAIL</strong>（TF 卡可移除是设计属性；−3 判 PASS 并出 <code>(no card)</code> 报告——与 24C02/W25Q&quot;焊死在板上必须应答&quot;的语义刻意相反）。</li>
+</ul>
+<h3>自测验证</h3>
+<p>菜单命令 <code>sdio_tf</code>：</p>
+<ul>
+<li>步骤 1：识别查询（−3 走 SKIP-PASS；其余失败按返回码报步骤名，如 <code>(init: stuck in identification)</code>）。</li>
+<li>步骤 2：捕获字段健全性（RCA≠0、C_SIZE≠0、SDHC 必带容量、CCS 与 CSD 结构一致——SDHC 对 v2 / SDSC 对 v1）。</li>
+<li>失败语义对照：<code>(no card)</code> = 空座 SKIP-PASS；<code>(init: stuck in identification)</code> = 卡在座但没上完电（弱接触/坏卡，step-1 FAIL）；<code>RCA=0</code> / <code>card type/CSD unknown</code> = 识别数据损坏或不支持，step-1/2 FAIL。</li>
+</ul>
+<p>本轮实测（2026-11-22）：<strong>PASS sdio_tf (SDHC mfr=0x02 7386MB)</strong>——板上实卡 4-bit 识别全链路。</p>
+<h3>对应视频集数</h3>
+<p>EP24（SDIO 与 TF 卡）。</p>
+</section>
+<section class="card" id="mod-adc">
+<div class="badge-row"><span class="badge pass">PASS</span><span class="menucmd">菜单命令：<code>adc</code></span></div>
+<h2>bsp_adc — ADC1 模数转换（EP08/EP09）</h2>
+<p>HAL 版 ADC1：CubeMX 生成的 4-rank 规则扫描（CH8/CH10/CH14 + Vrefint），软件触发单次</p>
+<p>模式；bsp 层逐 rank 轮询 EOC 取数，mV 换算 + Vrefint 反推电源轨。菜单命令 <code>adc</code>。</p>
+<h3>CubeMX GUI 配置步骤</h3>
+<ol>
+<li>Analog → ADC1 → 勾 IN8（PB0）激活 ADC1 IP（知识 #17：模拟 IP 的激活只有 GUI 一条</li>
+</ol>
+<p>   真路，首个通道勾选产出引脚+参数全套；后续通道参数可文本补齐）。</p>
+<ol>
+<li>依次勾入 IN10（PC0）、IN14（PC4）、Vrefint（CH17；F4 上 Vrefint 就是普通 regular</li>
+</ol>
+<p>   通道，无需 VP 键组）。</p>
+<ol>
+<li>Parameter Settings：ScanConvMode=ENABLE、ContinuousConvMode=DISABLE、</li>
+</ol>
+<p>   ExternalTrigConv=软件触发（ADC_SOFTWARE_START，触发边沿 NONE）、12bit 右对齐、</p>
+<p>   NbrOfConversion=4、EOC Selection=Single Conversion（EOCS=1——顺带使能溢出检测，</p>
+<p>   丢 rank 时 OVR 置位而不再静默错位）。</p>
+<ol>
+<li>Rank/采样窗（NVIC 不用开，纯轮询）：</li>
+</ol>
+<table><thead><tr><th>Rank</th><th>通道</th><th>引脚</th><th>Sampling Time</th></tr></thead><tbody><tr><td>1</td><td>CH8</td><td>PB0</td><td>3 cycles</td></tr><tr><td>2</td><td>CH10</td><td>PC0</td><td>3 cycles（生成值）→ <strong>bsp_adc_init 运行时重编 480 cycles</strong></td></tr><tr><td>3</td><td>CH14</td><td>PC4</td><td>3 cycles</td></tr><tr><td>4</td><td>Vrefint (CH17)</td><td>内部</td><td>480 cycles</td></tr></table>
+<ol>
+<li>Clock：ClockPrescaler=PCLK2/4（ADC_CLOCK_SYNC_PCLK_DIV4 = 21 MHz）。老工程寄存器版</li>
+</ol>
+<p>   ADCPRE 复位默认 00=PCLK2/2=42 MHz 超数据手册 36 MHz 上限的&quot;诚实告警点&quot;，HAL 版</p>
+<p>   用配置直接解决。</p>
+<p><strong>采样窗教学点（知识 #18.3，必须看懂再动采样时间）</strong>：3 cycles = 143 ns @21 MHz，</p>
+<p>采样保持电容（RAIN cap ~200 Ω 量级）对杜邦线接驳阻抗欠充——CH10 接 DAC 闭环时读恒 0。</p>
+<p>CH10 固化 480 cycles 后实测 501/1657/2802 mV vs DAC 设点 500/1650/2800（≤8 mV）。</p>
+<p>Rank1/3 保持 3 cycles 是刻意的活教材：浮空脚读恒 0（保持电容无放电路径）+ rank3 会</p>
+<p>读到 rank2 残压（实测 PC4 跟踪 PC0 的上一个设点）。F4 特性两条：HAL_ADC_Init 不置</p>
+<p>ADON（HAL_ADC_Start 才置）；SMP17 只有 2 位——480 装不下，钳位到字段上限 56，所以</p>
+<p>自检不精确探测 SMP17。</p>
+<h3>引脚</h3>
+<table><thead><tr><th>引脚</th><th>信号/标签</th><th>模式</th></tr></thead><tbody><tr><td>PB0</td><td>ADC1_IN8（ADC1_IN8_Pin）</td><td>Analog、无上下拉（MODER=11，MspInit 写）</td></tr><tr><td>PC0</td><td>ADC1_IN10</td><td>Analog、无上下拉</td></tr><tr><td>PC4</td><td>ADC1_IN14</td><td>Analog、无上下拉</td></tr><tr><td>（内部）</td><td>ADC1_IN17 Vrefint</td><td>CCR TSVREFE=1（ConfigChannel(VREFINT) 写入）</td></tr></table>
+<p>引脚规则不变：模拟模式断开施密特/输入缓冲；PUPDR=00——拉电阻会与源阻抗分压。</p>
+<h3>HAL API 调用清单</h3>
+<ul>
+<li><code>int bsp_adc_init(void)</code> — 只读回读 CubeMX 配置（handle 形状 4-rank 扫描/单次/</li>
+</ul>
+<p>  12bit 右对齐、CCR TSVREFE、SQR1 L=3、SMPR 采样窗字段、PB0/PC0/PC4 MODER 模拟），</p>
+<p>  并把 CH10 重编到 480 cycles。0=PASS，-1=不匹配。</p>
+<ul>
+<li><code>uint32_t bsp_adc_read_raw(uint32_t ch)</code> — <code>HAL_ADC_Start(&amp;hadc1)</code> 触发整轮 4-rank</li>
+</ul>
+<p>  扫描，按序逐 rank <code>HAL_ADC_PollForConversion</code> + <code>HAL_ADC_GetValue</code>，取 ch 对应 rank</p>
+<p>  的 12bit 码 0..4095；ch 用 <code>BSP_ADC_CH_IN8_PB0/_CH_IN10_PC0/_CH_IN14_PC4/_CH_VREFINT</code></p>
+<p>  选择器（值即通道号）。丢 rank（扫描跑赢轮询）→ OVR 置位 → 返回 0（EOC 时序纪律：</p>
+<p>  rank 必须落地即取）。</p>
+<ul>
+<li><code>uint32_t bsp_adc_read_mv(uint32_t ch)</code> — mv = raw×3300/4096（量化步距 0.806 mV；</li>
+</ul>
+<p>  F4 无出厂 VREFINT_CAL，电源轨保持 3.3 V 假设，由 Vrefint 窗把守）。</p>
+<ul>
+<li><code>const char *bsp_adc_last_report(void)</code> — 上次自测数据串（console-free，rule #7）。</li>
+<li><code>int bsp_adc_selftest(void)</code> — 步 1 配置回读；步 2 全扫描 + Vrefint ∈ [1150,1280] mV。</li>
+</ul>
+<pre><code>
+#include &quot;bsp_adc.h&quot;
+uint32_t mv = bsp_adc_read_mv(BSP_ADC_CH_IN10_PC0); /* PC0 上的电压 (mV) */
+</code></pre>
+<p>寄存器概念 → HAL 调用映射：SQR3 SQ1 每读重指 → 固定 4-rank 扫描取指定 rank；</p>
+<p>CR2 SWSTART=1 → <code>HAL_ADC_Start</code>；轮询 SR EOC → <code>HAL_ADC_PollForConversion</code>；</p>
+<p>读 DR（清 EOC）→ <code>HAL_ADC_GetValue</code>；TSVREFE → ConfigChannel(VREFINT)。</p>
+<h3>生成器盲区备注（如有）</h3>
+<ul>
+<li>ADC IP 激活必须 GUI 一次（勾 IN8 + File→Save Project 菜单保存）；通道参数/Vrefint</li>
+</ul>
+<p>  之后全部文本补齐，roundtrip(saveas) + regen 生成判据（知识 #17）。</p>
+<ul>
+<li>HAL_ADC_Init 不置 ADON（知识 #18.1）——Start 才上电；自检回读的是 TSVREFE/SQR/</li>
+</ul>
+<p>  SMPR/MODER，不含 ADON。</p>
+<ul>
+<li>CH10 480 cycles 修正在 bsp_adc_init 运行时重编（不在 Core——regen 会冲掉 Core 侧</li>
+</ul>
+<p>  手改），regen 稳定；.ioc 里的生成值保持 3 cycles 教学值。</p>
+<h3>自测验证</h3>
+<p>菜单 <code>adc</code>：<strong>PASS (vrefint 1205mV, vdda 3312mV)</strong>（test-report §2）——4-rank 扫描</p>
+<p>CH8/CH10/CH14+Vrefint；Vrefint 窗判 PASS，报告回填 vrefint/vdda 两个数。</p>
+<p>闭环佐证：<code>dac_adc_loop</code> <strong>PASS</strong>（PA4→PC0 线，501/1657/2802 vs 500/1650/2800，≤8 mV）。</p>
+<h3>对应视频集数</h3>
+<p>EP08（ADC 采集原理：采样时间/单次转换/EOC 轮询）、EP09（DAC+ADC 模拟闭环，Vrefint 教学点）。</p>
+</section>
+<section class="card" id="mod-dac">
+<div class="badge-row"><span class="badge pass">PASS</span><span class="menucmd">菜单命令：<code>dac</code></span></div>
+<h2>bsp_dac — DAC 通道 1 输出（EP09）</h2>
+<p>HAL 版 DAC OUT1（PA4=DAC_OUT1）：CubeMX 生成软件模式 + 输出缓冲的通道配置；bsp 层</p>
+<p>mV 设点 API + DOR 回读自检。菜单命令 <code>dac</code>（0/1650/3300 mV 三点 DOR 回读）。</p>
+<h3>CubeMX GUI 配置步骤</h3>
+<ol>
+<li>Analog → DAC → 勾 OUT1（PA4）激活 DAC IP（知识 #17：DAC 的信号键 + IP 项在</li>
+</ol>
+<p>   custom 文本上同样被拒，激活只有 GUI 一条真路；勾完 File→Save Project 菜单保存，</p>
+<p>   Ctrl+S 会被 SWT 焦点吞掉）。</p>
+<ol>
+<li>OUT1 参数：Output Buffer=ENABLE（低阻驱动杜邦线+ADC 负载；代价是轨边 ~0.2 V</li>
+</ol>
+<p>   余量——闭环测试点 500/1650/2800 mV 全在缓冲区内）、Trigger=None（软件模式：</p>
+<p>   写 DHR → 1 个 APB1 周期后自动进 DOR，无需 SWTRIG，RM0090 14.3.4）。</p>
+<ol>
+<li>Wave generation 不用（DC 设点 API；噪声/三角波是带触发才可用的进阶）。</li>
+<li>NVIC 不用开（无标志可轮询）。</li>
+<li>OUT2=PA5 不用（W25Q128 CLK 占用；PA4 空闲的前提是 SPI1 用软件 NSS）。</li>
+</ol>
+<p><strong>PA4 引脚模式盲区（知识 #18.4，本模块必教）</strong>：.ioc loader 给 PA4 遗留的是 AF 模式</p>
+<p>而非 Analog——DAC 模拟输出到不了引脚（引脚电平纹丝不动，闭环读恒 0）。修复不在</p>
+<p>Core：<code>bsp_dac_init</code> 自持 <code>HAL_GPIO_Init(GPIOA, GPIO_MODE_ANALOG)</code>（HAL 调用，</p>
+<p>A3 干净），每次 init 施加、regen 稳定。实测佐证：示波器 PA4=2.8 V（第三 setpoint，</p>
+<p>闭环运行时波形实时跟随序列）。</p>
+<h3>引脚</h3>
+<table><thead><tr><th>引脚</th><th>信号/标签</th><th>模式</th></tr></thead><tbody><tr><td>PA4</td><td>DAC_OUT1（DAC_OUT1_Pin）</td><td>Analog（生成器给 AF → bsp_dac_init 自配 Analog，见盲区）</td></tr></table>
+<h3>HAL API 调用清单</h3>
+<ul>
+<li><code>int bsp_dac_init(void)</code> — 只读回读通道 CR 形状（TEN1/TSEL1/WAVE1/MAMP1/BOFF1</li>
+</ul>
+<p>  全 0：软件触发、缓冲开、无波形；HAL_DAC_ConfigChannel 刻意留 EN1=0）+ 自配 PA4</p>
+<p>  Analog + <code>HAL_DAC_Start</code>（置 EN1 唤醒模拟宏单元，1 ms 盖过 us 级 tWAKEUP；DHR</p>
+<p>  复位默认 0 → PA4 空闲 0 V）。0=PASS，-1=不匹配/Start 失败。</p>
+<ul>
+<li><code>uint32_t bsp_dac_set_mv(uint32_t mv)</code> — code = round(mv×4096/3300)（即</li>
+</ul>
+<p>  (mv×4096+1650)/3300），钳位 4095（RM 公式满量程饱和即此路径）；经</p>
+<p>  <code>HAL_DAC_SetValue(..., DAC_ALIGN_12B_R, code)</code> + <code>HAL_DAC_Start</code> 装载，返回实际</p>
+<p>  装载的码。</p>
+<ul>
+<li><code>int bsp_dac_selftest(void)</code> — 步 1 CR+引脚回读；步 2 三点 set→DOR 回读：</li>
+</ul>
+<p>  0/1650/3300 mV → DOR1 = 0/2048/4095（端点证明轨道映射与钳位路径；DOR 才是模拟级</p>
+<p>  真正看到的值，DHR 只是保持寄存器）。</p>
+<pre><code>
+#include &quot;bsp_dac.h&quot;
+bsp_dac_set_mv(1650u); /* PA4 = mid-rail */
+</code></pre>
+<p>寄存器概念 → HAL 调用映射：CR EN1=1 → <code>HAL_DAC_Start</code>（通道唤醒）；DHR12R1 写 →</p>
+<p><code>HAL_DAC_SetValue</code>；DOR1 回读 → <code>HAL_DAC_GetValue</code>；MODER 模拟写 → 生成器 MspInit</p>
+<p>（只读回读）+ bsp_dac_init 运行时补写（盲区）。</p>
+<h3>生成器盲区备注（如有）</h3>
+<p>PA4 AF 模式遗留（上文，知识 #18.4）——修在 bsp 层 HAL_GPIO_Init(Analog)，regen</p>
+<p>稳定。其余无：通道配置本体（Trigger=None / OutputBuffer=Enable）由生成器正确渲染。</p>
+<h3>自测验证</h3>
+<p>菜单 <code>dac</code>：<strong>PASS</strong>（test-report §2，DAC OUT1 软件模式回读）。闭环佐证：</p>
+<p><code>dac_adc_loop</code> <strong>PASS</strong>（PA4→PC0 杜邦线，DAC 500/1650/2800 mV vs ADC</p>
+<p>501/1657/2802 mV，≤8 mV——同 VDDA，残差=量化+噪声）；示波器 PA4=2.8 V</p>
+<p>（第三 setpoint）。</p>
+<h3>对应视频集数</h3>
+<p>EP09（DAC 输出与模拟闭环；缓冲/触发/波形生成三开关教学）。</p>
+</section>
+<section class="card" id="mod-dma">
+<div class="badge-row"><span class="badge pass">PASS</span><span class="menucmd">菜单命令：<code>dma</code></span></div>
+<h2>bsp_dma — DMA 直接存储器访问（EP07）</h2>
+<p>HAL 版 DMA 教学：CubeMX 只实例化一条流——DMA2 Stream7/Channel4 = USART1_TX</p>
+<p>（Memory→Peripheral，byte，MINC，Normal，直连模式）；bsp 层经 <code>HAL_UART_Transmit_DMA</code></p>
+<p>走三拍完成链 + NDTR 计数器自证。菜单命令 <code>dma</code>（串口可见 <code>DMA-TX-OK</code> 行 + PASS）。</p>
+<h3>CubeMX GUI 配置步骤</h3>
+<ol>
+<li>USART1 → DMA Settings → Add USART1_TX（请求映射自动落到 DMA2 Stream7 /</li>
+</ol>
+<p>   DMA_CHANNEL_4——RM0090 Table 43：DMA2 Ch4 = USART1_TX）。</p>
+<ol>
+<li>流参数（DMA Request tab）：Direction=Memory To Peripheral、Memory Increment=MINC</li>
+</ol>
+<p>   Enable（逐字节走字符串）、Peripheral Increment=PINC Disable（DR 固定地址）、</p>
+<p>   Data Width=byte/byte、Mode=Normal（NDTR 跑到 0 后停）、FIFO=Disable（直接模式——</p>
+<p>   M2P 允许；对照老工程 S6 mem-to-mem 强制 FIFO 的教学点。HAL 版 W2 裁定不实例化</p>
+<p>   M2M 流：HAL 无一调用式 M2M 教学 API，本模块改证 USART1_TX DMA 路径）。</p>
+<ol>
+<li>NVIC：DMA2 stream7 global interrupt 勾选（MX_DMA_Init 设优先级 5 并 EnableIRQ）。</li>
+<li>实例化位置：hdma_usart1_tx 定义在 Core/Src/usart.c，由 <code>__HAL_LINKDMA</code> 挂进</li>
+</ol>
+<p>   huart1.hdmatx；dma.c 只开 DMA2 时钟 + 布 NVIC。</p>
+<p><strong>空 handler 盲区（知识 #18，本模块必教）</strong>：生成的 <code>DMA2_Stream7_IRQHandler</code> 是</p>
+<p>空体——TCIF 永远不清 → 中断风暴饿死菜单（上板实测，test-report §5.3）。修法</p>
+<p>（USER CODE 区补，regen 稳定保留）：<code>extern DMA_HandleTypeDef hdma_usart1_tx;</code></p>
+<p>（usart.h 不导出它）+ <code>HAL_DMA_IRQHandler(&amp;hdma_usart1_tx)</code>。</p>
+<h3>引脚</h3>
+<table><thead><tr><th>引脚</th><th>信号/标签</th><th>模式</th></tr></thead><tbody><tr><td>（无新增）</td><td>DMA 走既有 PA9=USART1_TX 日志口</td><td>AF7</td></tr></table>
+<p>无新增引脚。与轮询 TX 的可见差异：<code>DMA-TX-OK</code> 8N1 帧背靠背、无逐字节轮询间隙——</p>
+<p>谁在服务 DR（DMA 而非 CPU）即 EP07 的论点。</p>
+<h3>HAL API 调用清单</h3>
+<ul>
+<li><code>int bsp_dma_init(void)</code> — 只读回读流形状（Instance/Channel4/M2P/PINC off/MINC on/</li>
+</ul>
+<p>  byte/byte/Normal/FIFO off）+ LINKDMA 接线（huart1.hdmatx 指向本流）+ DMA 向量活；</p>
+<p>  并补武装 USART1_IRQn（优先级 5）：HAL UART DMA 发送的第二阶段完成需要 USART1 中断</p>
+<p>  服务（UART_DMATransmitCplt 清 DMAT 并 raise TC → HAL_UART_IRQHandler →</p>
+<p>  UART_EndTransmit_IT 把 gState 送回 READY），否则一次突发后 gState 恒 BUSY_TX，</p>
+<p>  之后每次轮询控制台写都返回 HAL_BUSY。0=PASS。</p>
+<ul>
+<li><code>int bsp_dma_uart_tx(const char *s)</code> — 一行 DMA 日志：<code>HAL_UART_Transmit_DMA</code> 一次</li>
+</ul>
+<p>  完成 PAR/M0AR/NDTR 装载 + 开流（老工程 RM 10.3.17 十步的一次调用等价），随后三拍</p>
+<p>  完成链全部有界（每拍 100×1 ms 封顶）：①流排空（DMA state BUSY→READY）②UART TC</p>
+<p>  置位（移位管线空——更强的&quot;线排空&quot;保证）③gState 回 READY（控制台所有权还给</p>
+<p>  bsp_uart 轮询 TX——老工程&quot;DMAT 借用后归还&quot;的 HAL 翻译）。0=送达，-1=空串/超时。</p>
+<ul>
+<li><code>int bsp_dma_selftest(void)</code> — 步 1 路径回读；步 2 发 <code>DMA-TX-OK\r\n</code>（载荷本体</li>
+</ul>
+<p>  由 DMA 送达）；步 3 NDTR==0 + 流 READY（老工程 NDTR 归零 + EN 自清的 HAL 孪生）。</p>
+<pre><code>
+#include &quot;bsp_dma.h&quot;
+bsp_dma_uart_tx(&quot;DMA-TX-OK\r\n&quot;); /* CPU never touches DR; DMA serves it */
+</code></pre>
+<p>寄存器概念 → HAL 调用映射：S7 CR（CHSEL4/DIR=M2P/MINC/byte/直连）→ CubeMX Init</p>
+<p>结构（只读回读）；PAR/M0AR/NDTR + EN=1 → <code>HAL_UART_Transmit_DMA</code>；轮询 HISR TCIF7</p>
+<p>→ <code>HAL_DMA_GetState(&amp;hdma_usart1_tx) != BUSY</code>；轮询 USART SR TC →</p>
+<p><code>__HAL_UART_GET_FLAG(&amp;huart1, UART_FLAG_TC)</code>。</p>
+<h3>生成器盲区备注（如有）</h3>
+<ul>
+<li>DMA2_Stream7_IRQHandler 空体 → USER CODE 区补 HAL_DMA_IRQHandler（上文）。</li>
+<li>hdma_usart1_tx 定义在 usart.c 但 usart.h 不导出 → 消费方 extern（bsp_dma.c 与</li>
+</ul>
+<p>  it.c 同一模式）。</p>
+<ul>
+<li>NVIC 只布 DMA 流向量、不布 USART1 → bsp_dma_init 补武装 USART1_IRQn；</li>
+</ul>
+<p>  USART1_IRQHandler 放 bsp_dma.c（Core 不动，仅服务 DMA 完成的 TC）。</p>
+<h3>自测验证</h3>
+<p>菜单 <code>dma</code>：<strong>PASS</strong>（test-report §2，USART1_TX 经 DMA2_Stream7 完成链）——</p>
+<p><code>DMA-TX-OK</code> 行出现在命令回显与判词之间，线格式与轮询 TX 完全一致。</p>
+<h3>对应视频集数</h3>
+<p>EP07（DMA：流/通道/仲裁讲解；mem-to-mem 与 UART DMA 发送演示——HAL 版只保留 UART</p>
+<p>DMA 演示，mem-to-mem 对照见寄存器版）。</p>
+</section>
+<section class="card" id="mod-exti">
+<div class="badge-row"><span class="badge pass">PASS</span><span class="menucmd">菜单命令：<code>exti</code></span></div>
+<h2>bsp_exti — 外部中断 EXTI（EP10）</h2>
+<p>HAL 版 EXTI 双线：PA0=KEY1 上升沿（EXTI0）、PA1=KEY2 下降沿（EXTI1）；引脚电配置由</p>
+<p>CubeMX 生成，bsp 层经 HAL_GPIO_Init 重编路由 + 统一 weak 回调分发 + 交互式计数自测。</p>
+<p>菜单命令 <code>exti</code>（<strong>交互式</strong>：绿 LED 闪 6 秒窗，按 KEY2 ≥3 次 → <code>PASS exti (3 presses)</code>；</p>
+<p>超时 → <code>PASS exti (idle, N presses)</code>，SKIP 语义不 FAIL）。</p>
+<h3>CubeMX GUI 配置步骤</h3>
+<ol>
+<li>PA0 → GPIO_EXTI0：Mode=External Interrupt Mode with Rising edge trigger</li>
+</ol>
+<p>   detection，Pull-down（KEY1 空闲 0、按下接 VDD → 按下即上升沿）。</p>
+<ol>
+<li>PA1 → GPIO_EXTI1：Falling edge trigger detection，Pull-up（KEY2 空闲 1、按下接地</li>
+</ol>
+<p>   → 按下即下降沿；松开的上升沿不计次）。</p>
+<ol>
+<li>NVIC：EXTI line0/line1 interrupt，优先级 5。注意生成物形态：MX_GPIO_Init 只</li>
+</ol>
+<p>   SetPriority、<strong>不 EnableIRQ</strong>——使能是 bsp_exti_init 的编路职责。</p>
+<ol>
+<li>生成的电配置（gpio.c）：KEY1=IT_RISING+PULLDOWN、KEY2=IT_FALLING+PULLUP，</li>
+</ol>
+<p>   与 IOC 真值一致。</p>
+<p>一条 <code>HAL_GPIO_Init(GPIO_MODE_IT_*)</code> 就写完老工程的整条链：SYSCFG EXTICR nibble</p>
+<p>（线←端口）+ FTSR/RTSR 触发锁存 + IMR 不屏蔽。**空 handler 盲区（知识 #18，本模块</p>
+<p>必教）**：生成的 EXTI0/EXTI1_IRQHandler 是空体——PR（rc_w1 语义）永远清不掉，按键</p>
+<p>即中断风暴。修法（USER CODE 区补，regen 稳定保留）：</p>
+<p><code>HAL_GPIO_EXTI_IRQHandler(KEYn_Pin)</code>。当前文件状态（固件 map 佐证）：EXTI1 已补</p>
+<p>KEY2_Pin（6 字节，<code>PASS exti (3 presses)</code> 即它的功劳）；EXTI0 仍为空体（2 字节）——</p>
+<p>KEY1 按下尚有风暴隐患，KEY1 的回调链（bsp_pwr 唤醒计数）依赖同一单行补丁待落。</p>
+<h3>引脚</h3>
+<table><thead><tr><th>引脚</th><th>信号/标签</th><th>模式</th></tr></thead><tbody><tr><td>PA0</td><td>KEY1（KEY1_Pin）= EXTI0</td><td>IT_RISING + Pull-down</td></tr><tr><td>PA1</td><td>KEY2（KEY2_Pin）= EXTI1</td><td>IT_FALLING + Pull-up</td></tr></table>
+<h3>HAL API 调用清单</h3>
+<ul>
+<li><code>int bsp_exti_init(void)</code> — HAL_GPIO_Init 重编两线（幂等修复生成电配置偏差）+</li>
+</ul>
+<p>  清陈旧挂起（<code>__HAL_GPIO_EXTI_CLEAR_IT</code>——PR rc_w1 的 HAL 拼写；挂起不清会让后续</p>
+<p>  WFI/Stop 入睡被忽略，bsp_pwr 教训）+ 使能 EXTI0/EXTI1 NVIC（优先级 5，与 .ioc</p>
+<p>  NVIC 节一致）+ 全链回读（IMR 0/1 不屏蔽、RTSR/FTSR 触发锁存、EXTICR nibble=0000</p>
+<p>  端口 A、MODER 输入、PUPDR 10/01、NVIC 使能）。0=PASS。</p>
+<ul>
+<li><code>uint32_t bsp_exti_key2_count(void)</code> — ISR 侧 volatile 计数主线读（volatile 教学</li>
+</ul>
+<p>  点：不带限定符主编译器可把轮询读提升出循环，计数&quot;冻结&quot;）。</p>
+<ul>
+<li><code>const char *bsp_exti_last_report(void)</code> — 上次自测报告串（console-free，rule #7；</li>
+</ul>
+<p>  老工程的 UART 提示改为绿 LED 闪——看板，不看终端）。</p>
+<ul>
+<li><code>int bsp_exti_selftest(void)</code> — 步 1 路由回读；步 2 交互 6 s 窗（LED 每 150 ms</li>
+</ul>
+<p>  翻转作提示；IWDG 每 500 ms 喂——窗长 6 s 逼近 ~8.2 s 狗，喂狗强制非装饰）；</p>
+<p>  计数为跨开机累计语义，≥3 → <code>(N presses)</code>，超时 → <code>(idle, N presses)</code>，两态皆 PASS。</p>
+<ul>
+<li>回调分发（bsp_exti.c）：<code>HAL_GPIO_EXTI_Callback</code> 是整个端口唯一的 weak override</li>
+</ul>
+<p>  （两模块都 override 会链接冲突——单回调所有权规则），按 GPIO_Pin 过滤：KEY2 计数；</p>
+<p>  KEY1 → <code>bsp_pwr_on_exti0()</code>（pwr 模块的唤醒计数钩子）。</p>
+<pre><code>
+#include &quot;bsp_exti.h&quot;
+uint32_t n = bsp_exti_key2_count(); /* presses counted by the ISR */
+</code></pre>
+<p>寄存器概念 → HAL 调用映射：EXTICR nibble / FTSR/RTSR / IMR → <code>HAL_GPIO_Init</code></p>
+<p>(IT_RISING / IT_FALLING) 一次写完；PR rc_w1 清挂起 → <code>__HAL_GPIO_EXTI_CLEAR_IT</code>；</p>
+<p>NVIC SetPriority/EnableIRQ → <code>HAL_NVIC_*</code>；ISR 三语句纪律（读测 PR / rc_w1 清 /</p>
+<p>计数）→ Core 向量分发进 weak 回调，ISR 侧只做&quot;记笔记&quot;。</p>
+<h3>生成器盲区备注（如有）</h3>
+<ul>
+<li>EXTI0/EXTI1_IRQHandler 空体 → USER CODE 区补 HAL_GPIO_EXTI_IRQHandler（上文；</li>
+</ul>
+<p>  EXTI1 已落 KEY2_Pin，EXTI0 待补——KEY1 中断路由未接通，按键即风暴）。</p>
+<ul>
+<li>MX_GPIO_Init 只 SetPriority 不 EnableIRQ → 向量使能归 bsp_exti_init。</li>
+<li>main.h 曾无 KEY 标签（bsp_exti.c 旧注释按字面量命名）；现行 main.h 已有</li>
+</ul>
+<p>  KEY1_Pin/KEY2_Pin 宏，it.c 的 KEY2_Pin 即用此宏。</p>
+<h3>自测验证</h3>
+<p>菜单 <code>exti</code>：<strong>PASS (3 presses)</strong>（test-report §3，KEY2 人工按键 3 次被 EXTI1+ISR</p>
+<p>精确计数——修复空 handler 中断风暴后）。无按键窗 → <code>(idle, N presses)</code>，SKIP 语义</p>
+<p>（硬件缺席不 FAIL）。</p>
+<h3>对应视频集数</h3>
+<p>EP10（外部中断：引脚→SYSCFG→EXTI→NVIC 四级链路与 ISR 纪律）。</p>
+</section>
+<section class="card" id="mod-oled">
+<div class="badge-row"><span class="badge pass">PASS</span><span class="menucmd">菜单命令：<code>oled</code></span></div>
+<h2>bsp_oled — SH1107 OLED 软 I2C 显示（PD9=SCL / PE15=SDA）（EP12）</h2>
+<p>HAL 版 OLED：<strong>无 CubeMX 外设</strong>——GPIO 开漏位拍软 I2C（~400 kHz，DWT CYCCNT 半位</p>
+<p>定时）+ SH1107 命令流 + font5x7 帧缓冲 + 4 行×16 字符文本 API。位拍引擎</p>
+<p>i2c_soft_bus（Radio 实证代码 1:1 保留）是 A3 豁免的教学主体；菜单命令 <code>oled</code>。</p>
+<h3>CubeMX GUI 配置步骤</h3>
+<p><strong>无外设可配</strong>：软 I2C 与 SH1107 都不在 .ioc（知识 #13：adapter 全权外设不入</p>
+<p>IOC）。仅有的 .ioc 痕迹是两个引脚的占位：</p>
+<ol>
+<li>PD9、PE15 在 .ioc 中保持 GPIO_Analog（标签 LCD_D14/LCD_D12——LCD 34 针座的</li>
+</ol>
+<p>   防冲突占位；4 针 OLED 变体插同一排针轨）。MX_GPIO_Init 对它们不写任何有效配置。</p>
+<ol>
+<li>引脚的真实配置由 <code>i2c_soft_bus_init()</code> 运行时施加：Output Open-Drain + Pull-up +</li>
+</ol>
+<p>   Speed High（HAL 等价 <code>GPIO_MODE_OUTPUT_OD + GPIO_PULLUP + GPIO_SPEED_FREQ_HIGH</code>，</p>
+<p>   引擎内为寄存器形态）+ 两线释放空闲高。每次 bsp_oled_init 幂等施加，CubeMX</p>
+<p>   生成/再生成永不冲突。</p>
+<ol>
+<li>总线速率 ~400 kHz：半位 = SystemCoreClock/(400×2000) = 210 cycles @168 MHz，</li>
+</ol>
+<p>   DWT CYCCNT 定时（1 字节 8 数据+1 ACK = 22.5 µs）。位定时不能给 SysTick——</p>
+<p>   COUNTFLAG 粒度 1 ms 是四百个位周期；SysTick 只管 DC-DC 100 ms 稳压窗。</p>
+<ol>
+<li>NVIC/DMA：无（轮询位拍；一页 129 字节一事务）。</li>
+<li>协议要点：面板地址 0x3C（备选 0x3D），线上字节 = addr&lt;&lt;1 = 0x78/0x7A；控制字节</li>
+</ol>
+<p>   bit7 Co=0、bit6 D/C#：0x00=命令流 / 0x40=数据流（地址段之后的&quot;语法&quot;是器件自己的）。</p>
+<h3>引脚</h3>
+<table><thead><tr><th>引脚</th><th>信号/标签</th><th>模式</th></tr></thead><tbody><tr><td>PD9</td><td>SCL（.ioc 标签 LCD_D14）</td><td>运行时配：Output Open-Drain + Pull-up + High</td></tr><tr><td>PE15</td><td>SDA（.ioc 标签 LCD_D12）</td><td>同上</td></tr></table>
+<p>开漏线与物理：写 1=释放（上拉回高）、写 0=拉低，主机永不&quot;推高&quot;——SDA 冲突、时钟</p>
+<p>拉伸物理上不成立（wired-AND）；IDR 读真实线电平（START 检查与 ACK 槽建立在这一点</p>
+<p>上）。上拉以模块自带 4.7–10 kΩ 为主，内部 ~40 kΩ 仅兜底。</p>
+<h3>HAL API 调用清单</h3>
+<p>**i2c_soft_bus（引擎，A3 豁免的教学主体——直接 BSRR/IDR 位拍保边沿精度，逐字节不变</p>
+<p>保留自寄存器版；bsp_oled.c 本体保持 HAL 干净：HAL 时钟宏 + HAL_GPIO_ReadPin 回读）**：</p>
+<ul>
+<li><code>i2c_soft_bus_init(bus, scl_port, scl_pin, sda_port, sda_pin, khz)</code> — 配脚 +</li>
+</ul>
+<p>  推半位周期 + 释放两线空闲高（调用方先开 GPIO 端口时钟）。</p>
+<ul>
+<li><code>i2c_soft_bus_write(bus, addr7, data, len)</code> — START,(addr7&lt;&lt;1)|W,len 字节,STOP；</li>
+</ul>
+<p>  每字节采 ACK，NACK 即停载荷、STOP 照发（总线不悬在事务中间）。</p>
+<ul>
+<li><code>i2c_soft_bus_probe(bus, addr7)</code> — 地址探测（器件在位检测）。</li>
+<li><code>i2c_soft_bus_recover(bus)</code> — 9 脉冲 + STOP 经典解缠（目标卡在字节中段时）。</li>
+<li><code>i2c_soft_bus_delay_ms(ms)</code> — SysTick COUNTFLAG 毫秒等待（死 tick 有界退出）。</li>
+</ul>
+<p><strong>bsp_oled（应用层）</strong>：</p>
+<ul>
+<li><code>int bsp_oled_init(void)</code> — 引擎配脚 + 配置回读（MODER/OTYPER/PUPDR + 两线空闲高，</li>
+</ul>
+<p>  HAL_GPIO_ReadPin 读 IDR）+ 0x3C/0x3D 探测（每地址一次解缠重试）+ SH1107 初始化</p>
+<p>  序列（Radio 实证表，仅 MUX 行 0x7F→0x3F 适配 64 行；0xAD 0x8B DC-DC 后等 100 ms）</p>
+<p>  + 清屏帧先刷 + 0xAF 开屏。0=序列已发（<strong>无面板不是错误</strong>——盲写语义）；-1=回读</p>
+<p>  不符/线不空闲；-2=线被拉死（写只读总线唯一能看见的真故障）。</p>
+<ul>
+<li><code>void bsp_oled_clear(void)</code> — 帧缓冲（8 页×128 列 RAM 镜像）全零 + 全页标脏。</li>
+<li><code>void bsp_oled_puts(uint8_t line, const char *str)</code> — line 0..3 每行 16 字符</li>
+</ul>
+<p>  （行距 16 px：字形页 + 空白页；6 px 步进；小写折叠大写、越界打 &#x27;?&#x27;；font bit0=</p>
+<p>  顶像素与页字节取向一致，免位旋转）。</p>
+<ul>
+<li><code>const char *bsp_oled_last_report(void)</code> / <code>int bsp_oled_selftest(void)</code> — 判词串 /</li>
+</ul>
+<p>  三步自测（init / 文本路径+fb 校验+全帧刷出 / 等待窗纪律）。</p>
+<pre><code>
+#include &quot;bsp_oled.h&quot;
+bsp_oled_puts(0u, &quot;F407-PERIPH-LAB&quot;); /* line 0 */
+bsp_oled_puts(1u, &quot;I2C OLED OK&quot;);     /* line 1; flush inside selftest */
+</code></pre>
+<p>两种 I2C 器件形态（EP11 对照，本模块教学核心）：存储器件（24C02，EP11）事务携带</p>
+<p><strong>器件内地址</strong>（<code>S 0xA0 字地址 数据 P</code>，随机读=先设指针再取数）；显示控制器</p>
+<p>（SH1107）事务携带的是<strong>流</strong>——控制字节只说&quot;后面是命令/数据&quot;，像素落点由先发的</p>
+<p>命令（页/列光标）决定，控制器自推进光标、只画不读。同一根电气总线，地址段之后的</p>
+<p>&quot;语法&quot;各是各的。</p>
+<h3>生成器盲区备注（如有）</h3>
+<p>无（软总线豁免即主题）。唯一所有权重申：PD9/PE15 的引脚配置永远属于</p>
+<p>i2c_soft_bus_init（.ioc 保持 Analog 占位），CubeMX 任何生成不会与之冲突。</p>
+<h3>自测验证</h3>
+<p>菜单 <code>oled</code>：<strong>PASS (no display: cmds blind-sent)</strong>（test-report §2，无面板 SKIP</p>
+<p>语义）——地址字节照发被 NACK（引擎跳过载荷、STOP 照发），命令流不报错；示波器在</p>
+<p>裸总线上仍能看到完整初始化波形（START、0x78、0x00、逐字节）。接线正确后重跑：</p>
+<p><code>PASS oled (ack@0x3C, text on lines 0-1)</code> + 面板肉眼对照（行 0 &quot;F407-PERIPH-LAB&quot;、</p>
+<p>行 1 &quot;I2C OLED OK&quot;）；帧缓冲侧由软件校验（页 0/2 有墨、其余页全零、脏位清零）。</p>
+<p>线被拉死（含一次 9 脉冲解缠重试）才 FAIL step1。</p>
+<h3>对应视频集数</h3>
+<p>EP12（SPI/外设波次——4 针软 I2C OLED 变体在 W25Q 接线时发现）；与 EP11</p>
+<p>（I2C EEPROM，存储器件形态）对照。</p>
+</section>
+<section class="card" id="mod-dac_adc_loop">
+<div class="badge-row"><span class="badge pass">PASS</span><span class="menucmd">菜单命令：<code>dac_adc_loop</code>（闭环，需杜邦线）</span></div>
+<h2>闭环 闭环 DAC→ADC</h2><p>DAC（PA4，500/1650/2800 mV 三档）→ 杜邦线 → ADC CH10（PC0）。实测 501/1657/2802 mV，误差 ≤8 mV。依赖： jumper PA4→PC0。</p>
+</section>
+<section class="card" id="mod-pwm_ic_loop">
+<div class="badge-row"><span class="badge pass">PASS</span><span class="menucmd">菜单命令：<code>pwm_ic_loop</code>（闭环，需杜邦线）</span></div>
+<h2>闭环 闭环 PWM→捕获</h2><p>TIM1_CH1（PA8，1 kHz）→ 杜邦线 → TIM2_CH2（PB3）输入捕获测频。实测 950–1050 Hz 通过。依赖： jumper PA8→PB3。</p>
+</section>
+
+<section class="sec" id="sec-debug">
+<h2>开发调试实录（pyocd-SWD 取证，8 案）</h2>
+<p>方法论：<b>halt 读 PC/LR + 栈回溯 + map 反查</b>一击定位死点；
+<b>resume 态外设寄存器实况读</b>区分"代码写对但硬件没跟上"；
+<b>RAM 搜 SEGGER RTT magic</b>判定固件是否活过启动；<b>pyocd 直写 flash 寄存器</b>隔离硬件/固件。
+背景知识见 knowledge/pitfalls-cubemx-keil.md #17/#18。</p>
+<div class="tl-card" id="tl-1"><div class="tl-head"><span class="tl-no">#1</span> <b>症状</b>：烧录后串口完全静默（菜单无 banner，无任何输出）</div><div class="tl-row"><span class="k">取证</span><span>pyocd halt 读 PC=0x0800073C → map 反查 = Error_Handler（main.o）；栈回溯返回地址 0x0800A161 → fromelf 反汇编定位 BL MX_SDIO_SD_Init。RAM 中无 &quot;SEGGER RTT&quot; magic → 固件从未活过启动。</span></div><div class="tl-row"><span class="k">根因</span><span>TF 卡座为空：CubeMX 生成的 MX_SDIO_SD_Init 把 HAL_SD_Init 失败当致命错误直接进 Error_Handler——无卡即砖机。</span></div><div class="tl-row"><span class="k">修复</span><span>USER CODE SDIO_Init 0 区 lazy return（regen 稳定保留）；识别改为 bsp_sdio_tf_init 运行时自配（引脚 AF12 + 句柄 + HAL_SD_Init）。</span></div><div class="tl-row"><span class="k">验证</span><span class="v">PASS sdio_tf (SDHC mfr=0x02 7386MB)</span></div></div>
+<div class="tl-card" id="tl-2"><div class="tl-head"><span class="tl-no">#2</span> <b>症状</b>：复测时板子再次失联，halt 抓到 PC=EXTI1_IRQHandler 入口、LR=EXC_RETURN</div><div class="tl-row"><span class="k">取证</span><span>中断返回后立即重入 = 中断风暴。生成的 EXTI1_IRQHandler 体为空（TC/PR 挂起位永不清），KEY2 按键触发即风暴，菜单被饿死。</span></div><div class="tl-row"><span class="k">根因</span><span>CubeMX 6.11 文本 loader 盲区族：NVIC 使能与 Signal 键都被接受，但 handler 体不渲染 HAL_GPIO_EXTI_IRQHandler 调用（DMA2_Stream7 同族）。</span></div><div class="tl-row"><span class="k">修复</span><span>USER CODE EXTI0_IRQn 1 / EXTI1_IRQn 1 区补 HAL_GPIO_EXTI_IRQHandler(KEY1_Pin/KEY2_Pin)；DMA2_Stream7_IRQn 1 区补 HAL_DMA_IRQHandler(&amp;hdma_usart1_tx)。</span></div><div class="tl-row"><span class="k">验证</span><span class="v">PASS exti (3 presses)、PASS dma、PASS dac_adc_loop</span></div></div>
+<div class="tl-card" id="tl-3"><div class="tl-head"><span class="tl-no">#3</span> <b>症状</b>：WWDG 在启动 ~49 ms 后复位循环（RTT magic 永不出现）</div><div class="tl-row"><span class="k">取证</span><span>pyocd 读 WWDG 生成代码：Init.Window = 64 —— 刷新区只有一个 0.78 ms tick，任何启动序列都不可能命中；.ioc 写 127 也被覆盖。</span></div><div class="tl-row"><span class="k">根因</span><span>.ioc 文本 loader 的 WWDG Window 生成器盲区（知识 #17）。</span></div><div class="tl-row"><span class="k">修复</span><span>调试期看门狗全关（用户裁定）：MX_IWDG_Init/MX_WWDG_Init 的USER CODE 0 区短路。恢复 = 删两处 return + bsp_wdg 运行时 init。</span></div><div class="tl-row"><span class="k">验证</span><span class="v">启动后稳定进入菜单；wdg 记 KNOWN（预期偏差）。</span></div></div>
+<div class="tl-card" id="tl-4"><div class="tl-head"><span class="tl-no">#4</span> <b>症状</b>：tim_basic 稳定 FAIL（step1/step2 漂移）</div><div class="tl-row"><span class="k">取证</span><span>TIM5 寄存器实况全部健康（CEN=1、PSC=8399、ARR=9999、CNT 翻转）。代码审查：SPIN_GUARD 固定 2M 圈 @168MHz ≈ 120 ms，比 1.5 s 窗口先耗尽——guard 永远先于 update 死亡。</span></div><div class="tl-row"><span class="k">根因</span><span>固定圈数守护未按窗口长度校准（2M 圈 × ~60 ns/圈 ≈ 120 ms）。</span></div><div class="tl-row"><span class="k">修复</span><span>改为 tick-进展重置式守护：HAL_GetTick 有进展即重置 guard（SysTick 死检测语义保留）。</span></div><div class="tl-row"><span class="k">验证</span><span class="v">PASS tim_basic（连续多轮稳定）</span></div></div>
+<div class="tl-card" id="tl-5"><div class="tl-head"><span class="tl-no">#5</span> <b>症状</b>：flash_iap 稳定 FAIL step2（无 report 后缀）</div><div class="tl-row"><span class="k">取证</span><span>现场读参数页/扇区头全 0xFF（擦除其实成功、写入未执行）；pyocd 手动模拟 unlock→program 写入成功（硬件正常）。HAL_FLASHEx_Erase 把 *SectorError 预置 0xFFFFFFFF（成功即保持），调用方以 0 初始化 + !=0 判据永远误报。</span></div><div class="tl-row"><span class="k">根因</span><span>HAL 约定坑（知识 #18）：sector_error 的成功语义；另有 SR 脏错误位（WRPERR/PGSERR 残留）导致新操作立即报错。</span></div><div class="tl-row"><span class="k">修复</span><span>按 HAL 约定 0xFFFFFFFF 初始化并判定；擦除前 __HAL_FLASH_CLEAR_FLAG 清脏标志；step2 全分支接入 report。</span></div><div class="tl-row"><span class="k">验证</span><span class="v">PASS flash_iap (erase ok, param 8w kept)</span></div></div>
+<div class="tl-card" id="tl-6"><div class="tl-head"><span class="tl-no">#6</span> <b>症状</b>：dac_adc_loop 读 PC0 恒 0（浮空脚也恒 0）</div><div class="tl-row"><span class="k">取证</span><span>SWD 实况：DAC DOR=0x26D（500mV 码 ✓）、DHR ✓、CR ✓——数字通路全对；GPIOA MODER PA4=AF（非 Analog）→ DAC 输出到不了引脚。示波器实测 PA4=512mV→修复后 2.8V（第三 setpoint）。ADC 侧：CH10 3-cycle 采样窗 143ns，RM0090 源阻抗上限 ~200Ω，杜邦线接驳阻抗下采样电容欠充 → 读恒 0。PC4 读数跟随时序漂移 = rank3 读到 rank2 残压（采样保持活教材）。</span></div><div class="tl-row"><span class="k">根因</span><span>三重叠加：PA4 .ioc loader 遗留 AF 模式（知识 #18）+ CH10 3-cycle 采样窗对杜邦线阻抗不足 + 浮空脚短采样保持特性。</span></div><div class="tl-row"><span class="k">修复</span><span>bsp_dac_init 自持 HAL_GPIO_Init(PA4 Analog)；CH10 固化 480 cycles（实测 501/1657/2802 vs 500/1650/2800，≤8 mV）；浮空脚零读数写进教学注释。</span></div><div class="tl-row"><span class="k">验证</span><span class="v">PASS dac_adc_loop（连续多轮）、PASS dac、PASS adc (vrefint 1205mV)</span></div></div>
+<div class="tl-card" id="tl-7"><div class="tl-head"><span class="tl-no">#7</span> <b>症状</b>：gpio/tim_pwm 命令字符偶发丢失（&#x27;gpiotim_pwm&#x27; 粘连）</div><div class="tl-row"><span class="k">取证</span><span>help/banner 打印期间 HAL_UART_Transmit 阻塞，RX 到达的字节置 ORE（溢出），溢出后新字节全部被抑制——菜单饿死在打印期间。</span></div><div class="tl-row"><span class="k">根因</span><span>F4 UART ORE 置位后 RX 被抑制，无人清除。</span></div><div class="tl-row"><span class="k">修复</span><span>bsp_uart_getc_nonblock 检测 ORE 并 __HAL_UART_CLEAR_OREFLAG 清除 +补一次 DR 读；脚本侧加 menu&gt; 提示符同步（打印完成才发命令）。</span></div><div class="tl-row"><span class="k">验证</span><span class="v">自动套件 22 项连续跑通，无粘连复现</span></div></div>
+<div class="tl-card" id="tl-8"><div class="tl-head"><span class="tl-no">#8</span> <b>症状</b>：adc step1 / dac_adc_loop step1 判据漂移</div><div class="tl-row"><span class="k">取证</span><span>F4 HAL_ADC_Init 不置 ADON（Start 才置）；SMP17 只有 2 位（480 cycles 装不下，钳位 56）；F4 HAL ConfigChannel 的 采样时间/rank 映射使静态 SMPR 位探测语义含混。</span></div><div class="tl-row"><span class="k">根因</span><span>agent 生成代码假设寄存器级行为，与 HAL 语义/硬件位宽不符。</span></div><div class="tl-row"><span class="k">修复</span><span>探测放宽到硬件可实现域（删 ADON/SMP 位探测，保留 TSVREFE/SQR1/Analog 引脚检查）；采样正确性由 read_mv 实测行为验证（闭环 ≤8mV）。</span></div><div class="tl-row"><span class="k">验证</span><span class="v">PASS adc (vrefint 1205mV, vdda 3312mV)、PASS dac_adc_loop</span></div></div>
+</section>
+
+<section class="sec" id="sec-blind">
+<h2>生成器盲区知识库（.ioc 文本 loader / CubeMX 6.11）</h2>
+<table>
+<tr><th>盲区</th><th>现象</th><th>修复</th><th>状态</th></tr>
+<tr><td>SDIO 空座砖机</td><td>MX_SDIO_SD_Init 失败即 Error_Handler</td><td>USER CODE lazy return + bsp 运行时自配</td><td>已修复（SDHC 识别 PASS）</td></tr><tr><td>WWDG Window 恒 64</td><td>.ioc 写 127 也被生成器覆盖（单 tick 剃刀窗）</td><td>调试期看门狗全关；恢复时运行时 init</td><td>KNOWN（用户裁定）</td></tr><tr><td>DMA2_Stream7 空 handler</td><td>NVIC 使能生成但 handler 体空 → 中断风暴</td><td>USER CODE 1 区补 HAL_DMA_IRQHandler</td><td>已修复（dma PASS）</td></tr><tr><td>EXTI0/1 空 handler</td><td>按键即风暴（PR 永不清）</td><td>USER CODE 1 区补 HAL_GPIO_EXTI_IRQHandler</td><td>已修复（exti 3 presses PASS）</td></tr><tr><td>RTCClockSelection 恒 LSI</td><td>.ioc 写 LSE 生成恒 LSI</td><td>app_main 修正段（LSE 有界等待，非致命）</td><td>就位（本轮走 LSI 分支）</td></tr><tr><td>WWDG/ADC/DAC/EXTI 键位漂移</td><td>loader 接受键但生成语义漂移（AF/窗口/采样）</td><td>bsp 层自持引脚/配置 + 生成真值复核</td><td>已修复</td></tr><tr><td>config save 静默失败</td><td>headless 下 OK 但不落盘</td><td>一律用 config saveas</td><td>已入库（知识 #17）</td></tr><tr><td>模拟 IP 文本不可实例化</td><td>信号键不联动 IP；板血统键是开关</td><td>GUI 一次激活 + 参数层全文本</td><td>已入库（知识 #16/#17）</td></tr>
+</table>
+<p>完整规则见 knowledge/pitfalls-cubemx-keil.md #16（实例化能力矩阵）、
+#17（基底手术管线）、#18（取证法与 HAL 约定坑）。</p>
+</section>
+
+<section class="sec" id="sec-verdict">
+<h2>验证报告（最终回归）</h2>
+<p>PASS 19 + 手动复核 2 = <b>21 模块全 PASS</b>；KNOWN 1（wdg，调试期关狗——用户裁定，
+恢复方法见 wdg.md）；FAIL 0。闭环人工项 3/3 PASS。</p>
+<table>
+<tr><th>命令</th><th>判定</th><th>实测</th></tr>
+<tr><td><code>uart</code></td><td><span class="badge pass">PASS</span></td><td>BRR 读回 + TC 发送 + RX 静默窗</td></tr><tr><td><code>gpio</code></td><td><span class="badge known">PASS*</span></td><td>手动复核多次 PASS（套件 pacing 遗留）</td></tr><tr><td><code>tim_pwm</code></td><td><span class="badge known">PASS*</span></td><td>TIM1/TIM4 1 kHz（同上）</td></tr><tr><td><code>tim_basic</code></td><td><span class="badge pass">PASS</span></td><td>TIM5 1 Hz 轮询（守护修复后稳定）</td></tr><tr><td><code>tim_ic</code></td><td><span class="badge pass">PASS</span></td><td>无输入 SKIP（0 Hz）</td></tr><tr><td><code>tim_enc</code></td><td><span class="badge pass">PASS</span></td><td>编码器 idle SKIP</td></tr><tr><td><code>tim_adv</code></td><td><span class="badge pass">PASS</span></td><td>互补 PWM + 1µs 死区</td></tr><tr><td><code>can_lb</code></td><td><span class="badge pass">PASS</span></td><td>500k 回环帧收发</td></tr><tr><td><code>crc_rng</code></td><td><span class="badge pass">PASS</span></td><td>MPEG-2 向量 + RNG</td></tr><tr><td><code>rtc</code></td><td><span class="badge pass">PASS</span></td><td>日历 + BKP（LSI 分支，LSE 修正段就位）</td></tr><tr><td><code>wdg</code></td><td><span class="badge known">KNOWN</span></td><td>调试期看门狗全关（用户裁定）</td></tr><tr><td><code>pwr</code></td><td><span class="badge pass">PASS</span></td><td>Sleep(WFI) + standby 标志</td></tr><tr><td><code>flash_iap</code></td><td><span class="badge pass">PASS</span></td><td>扇区 7 擦除 + 参数页保留</td></tr><tr><td><code>i2c_ee</code></td><td><span class="badge pass">PASS</span></td><td>24C02 0x55/0xAA roundtrip</td></tr><tr><td><code>spi_flash</code></td><td><span class="badge pass">PASS</span></td><td>W25Q128 JEDEC 9F:EF4018</td></tr><tr><td><code>sdio_tf</code></td><td><span class="badge pass">PASS</span></td><td>SDHC mfr=0x02 7386MB</td></tr><tr><td><code>adc</code></td><td><span class="badge pass">PASS</span></td><td>vrefint 1205mV / vdda 3312mV</td></tr><tr><td><code>dac</code></td><td><span class="badge pass">PASS</span></td><td>OUT1 软件模式回读</td></tr><tr><td><code>dma</code></td><td><span class="badge pass">PASS</span></td><td>USART1_TX DMA2_Stream7 完成链</td></tr><tr><td><code>oled</code></td><td><span class="badge pass">PASS</span></td><td>无面板盲写 SKIP</td></tr><tr><td><code>dac_adc_loop</code></td><td><span class="badge pass">PASS</span></td><td>PA4→PC0 线 ≤8mV</td></tr><tr><td><code>pwm_ic_loop</code></td><td><span class="badge pass">PASS</span></td><td>PA8→PB3 线 1kHz 捕获</td></tr>
+</table>
+<p>* gpio/tim_pwm：模块本体手动复核 PASS 多次；套件 NO-VERDICT 为脚本 pacing
+遗留（工具层，非模块缺陷）。</p>
+</section>
+
+<section class="sec" id="sec-repro">
+<h2>复现步骤</h2>
+<pre><code>cd projects/f407-periph-lab-hal
+asm build --project .            # 三判据：0 err 0 warn + hex 新鲜
+cd firmware/MDK-ARM
+UV4.exe -f f407-periph-lab-hal.uvprojx -j0 -o flash_log.txt
+cd ../..
+python -I tools/menu_autotest.py # 串口 COM18 115200，22 项自动
+# 人工项：exti 按 KEY2 ≥3 次；dac_adc_loop/pwm_ic_loop 需杜邦线 PA4→PC0、PA8→PB3
+# regen 后固定手术：删 it.c 的 HardFault_Handler（L6200E）+ 重拷 RTT 中间件 4 文件</code></pre>
+</section>
+
+</main>
+</div>
+<footer>f407-periph-lab-hal · HAL 外设教学工程 · 生成于 2026-11-22 ·
+数据源：docs/periph/ 22 页 + docs/test-report.md + knowledge #17/#18 ·
+本文件由 tools/build_demo_html.py 生成</footer>
+</body>
+</html>

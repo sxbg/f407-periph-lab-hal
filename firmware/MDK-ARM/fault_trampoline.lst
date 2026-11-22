@@ -1,0 +1,80 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000         ; fault_trampoline.s -- HardFault handler takeover (arma
+                       sm, Thumb-2).
+    2 00000000         ; Strong symbol replaces the CubeMX-generated C HardFaul
+                       t_Handler in
+    3 00000000         ; Core/Src/stm32f4xx_it.c (that C copy must be deleted; 
+                       see bringup-log).
+    4 00000000         ; The exception frame is already stacked; hand the SP to
+                        the C handler
+    5 00000000         ; (MSP or PSP per EXC_RETURN bit 2). ALIGN=3 (8B) avoids
+                        armasm A1581W.
+    6 00000000                 AREA             |.text|, CODE, READONLY, ALIGN=
+3
+    7 00000000                 THUMB
+    8 00000000                 EXPORT           HardFault_Handler
+    9 00000000                 IMPORT           fault_capture_handler_c
+   10 00000000         
+   11 00000000         HardFault_Handler
+   12 00000000 F01E 0F04       tst              lr, #4
+   13 00000004 BF0C            ite              eq
+   14 00000006 F3EF 8008       mrseq            r0, msp
+   15 0000000A F3EF 8009       mrsne            r0, psp
+   16 0000000E 4901            ldr              r1, =fault_capture_handler_c
+   17 00000010 4708            bx               r1
+   18 00000012 00 00           ALIGN
+   19 00000014 00000000        LTORG
+   20 00000018         
+   21 00000018                 END
+Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M4.fp.sp --apcs=
+interwork --depend=f407-periph-lab-hal\fault_trampoline.d -of407-periph-lab-hal
+\fault_trampoline.o -I.\RTE\_f407-periph-lab-hal -IC:\Users\ITHINKICAN\AppData\
+Local\Arm\Packs\ARM\CMSIS\6.3.0\CMSIS\Core\Include -IC:\Users\ITHINKICAN\AppDat
+a\Local\Arm\Packs\Keil\STM32F4xx_DFP\2.14.0\Drivers\CMSIS\Device\ST\STM32F4xx\I
+nclude --predefine="__UVISION_VERSION SETA 531" --predefine="_RTE_ SETA 1" --pr
+edefine="STM32F407xx SETA 1" --predefine="_RTE_ SETA 1" --list=fault_trampoline
+.lst ..\App\platform\fault_trampoline.s
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+.text 00000000
+
+Symbol: .text
+   Definitions
+      At line 6 in file ..\App\platform\fault_trampoline.s
+   Uses
+      None
+Comment: .text unused
+HardFault_Handler 00000000
+
+Symbol: HardFault_Handler
+   Definitions
+      At line 11 in file ..\App\platform\fault_trampoline.s
+   Uses
+      At line 8 in file ..\App\platform\fault_trampoline.s
+Comment: HardFault_Handler used once
+2 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+External symbols
+
+fault_capture_handler_c 00000000
+
+Symbol: fault_capture_handler_c
+   Definitions
+      At line 9 in file ..\App\platform\fault_trampoline.s
+   Uses
+      At line 16 in file ..\App\platform\fault_trampoline.s
+Comment: fault_capture_handler_c used once
+1 symbol
+339 symbols in table

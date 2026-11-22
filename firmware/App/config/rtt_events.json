@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "line_format": "E %04x %04x %08x %04x %08x %08x\r\n",
+  "field_rule": "field a is 16-bit only; any value that may exceed 0xFFFF MUST go into b or c (16-bit truncation once produced two rounds of false conclusions)",
+  "subsystems": {
+    "1": "CORE",
+    "2": "APP",
+    "3": "LOG"
+  },
+  "events": [
+    { "code": 256, "name": "BOOT",           "channel": "ring+rtt", "fmt": "cause=0x{a:X} sysclk={b}" },
+    { "code": 257, "name": "HEARTBEAT",      "channel": "rtt",      "fmt": "up_ms={b}" },
+    { "code": 258, "name": "ERR_HANDLER",    "channel": "ring+rtt", "fmt": "count={a} where=0x{b:X}" },
+    { "code": 259, "name": "ASSERT",         "channel": "ring+rtt", "fmt": "line={a} file=0x{b:X}" },
+    { "code": 260, "name": "CLOCK_FALLBACK", "channel": "ring+rtt", "fmt": "stage={a} freq={b}" },
+    { "code": 261, "name": "WATCHDOG_RESET", "channel": "ring+rtt", "fmt": "flags=0x{a:X}" },
+    { "code": 262, "name": "MARK",           "channel": "ring+rtt", "fmt": "tag=0x{a:X} extra={b}" },
+    { "code": 263, "name": "FAULT_PC",       "channel": "ring+rtt", "fmt": "seq={a} pc=0x{b:X} lr=0x{c:X}" },
+    { "code": 264, "name": "FAULT_CFSR",     "channel": "ring+rtt", "fmt": "vec={a} cfsr=0x{b:X} bfar=0x{c:X}" },
+    { "code": 512, "name": "LED_TOGGLE",     "channel": "rtt",      "fmt": "pin=0x{a:X} state={b}" }
+  ]
+}

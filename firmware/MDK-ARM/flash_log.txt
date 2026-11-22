@@ -1,0 +1,3 @@
+Load "f407-periph-lab-hal\\f407-periph-lab-hal.axf" 
+Erase Done.Programming Done.Verify OK.Application running ...
+Flash Load finished at 15:10:32

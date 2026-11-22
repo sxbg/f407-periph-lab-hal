@@ -1,0 +1,78 @@
+# AutoSTM32 project configuration — schema autostm32/project@1
+# The paths: section is the SINGLE source of truth for project paths.
+# mcu.device must be the exact J-Link device library name (STM32F407VE,
+# not the silkscreen VET6).
+
+schema: autostm32/project@1
+
+family: STM32F4
+
+project:
+  name: f407-periph-lab-hal
+  board: F407VE dev board v5.5
+  description: "CubeMX-configured HAL version of the all-peripheral teaching lab"
+
+mcu:
+  family: STM32F4
+  device: STM32F407VE        # e.g. STM32F407VE
+  hse_hz: 25000000
+  sysclk_hz: 168000000
+
+debugger:
+  kind: jlink
+  interface: SWD
+  speed_khz: 4000
+  # RTT control block search ranges rendered from the family pack
+  rtt_search_ranges: "0x20000000 0x20020000"
+
+logging:
+  uart:
+    enabled: true
+    instance: USART1
+    pins: [PA9, PA10]
+    baud: 115200
+    com_port: auto     # auto = choose at capture time; set explicit COMn to pin it
+  rtt:
+    enabled: true
+    channel: 0
+    up_buffer_size: 4096
+    format: event
+  heartbeat_period_ms: 1000
+
+build:
+  toolchain: keil-mdk
+  require_zero_warning: false
+  extra_includes: []
+
+tests:
+  host:
+    enabled: true
+    std: c11
+  hil:
+    enabled: true
+    suites: [s00_bringup]
+    rtt_window_s: 30
+    witness_symbols: []
+
+git:
+  enabled: true
+  commit_style: conventional-lite
+
+docs:
+  bringup_log: docs/bringup-log.md
+  adr_dir: docs/adr
+  design_doc: docs/设计.md
+
+paths:
+  ioc: firmware/f407-periph-lab-hal.ioc
+  uvprojx: firmware/MDK-ARM/f407-periph-lab-hal.uvprojx
+  hex: firmware/MDK-ARM/f407-periph-lab-hal/f407-periph-lab-hal.hex
+  map: firmware/MDK-ARM/f407-periph-lab-hal/f407-periph-lab-hal.map
+  app_root: firmware/App
+  core_root: firmware/Core
+  rtt_sources: firmware/Middlewares/SEGGER/RTT
+  tests_dir: firmware/Tests/host
+  hil_suites_dir: firmware/Tests/hil_suites
+  runs_dir: runs
+  archive_dir: archive
+  event_table: firmware/App/config/rtt_events.json

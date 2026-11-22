@@ -1,0 +1,9 @@
+{
+ "ips": [],
+ "params": {
+  "PA4.GPIOParameters": "GPIO_PuPd,GPIO_Label,GPIO_Mode",
+  "PA4.GPIO_Mode": "GPIO_MODE_ANALOG",
+  "PA4.GPIO_PuPd": "GPIO_NOPULL"
+ },
+ "whitelist": {}
+}
